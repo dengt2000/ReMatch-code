@@ -10,8 +10,8 @@ class Parser
 private:
 	int position = 0;
 	int groupID = 0;
-	bool isPrefix = false;//�Ƿ�Ϊǰ׺
-	bool isSuffix = false;//�Ƿ�Ϊ��׺
+	bool isPrefix = false;
+	bool isSuffix = false;
 	string input;
 	char peek();
 	void eat(char c);

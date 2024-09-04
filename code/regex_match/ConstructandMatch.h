@@ -45,7 +45,7 @@ public:
 
 	//bool w1_set_match(vector<pair<int, int>> w1, unordered_map<pair<int, int>, set<pair<int, int>, pair_comp>, Hashfunc, Equalfunc> position_edges, pair<int, int>& j1, pair<int, int>& j2, int i, unordered_map<pair<int, int>, bool, Hashfunc, Equalfunc> visited);
 private:
-	vector<int> BRNo;//�ҵ�ÿ���������ö�Ӧ�ĵ�һ���������λ��
+	vector<int> BRNo;
 	bool checkahead(vector<vector<vector<pair<int, int>>>>& position_edges,  int first, int second);
 	bool checkbehind(vector<vector<vector<pair<int, int>>>>& position_edges,  int first, int second);
 	void getBRNo(int CGs,vector<int>groupNo);

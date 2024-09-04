@@ -27,7 +27,7 @@ bool match(string E,string w)
 	//cout<<E<<" "<<w<<endl;
 	clock_t begin_time = clock();
 	shared_ptr<Production_FA> p (new Production_FA(E, w));
-	// cout<<111111111<<endl;
+	
 	//cout<< "groupNum:"<<p->groupNum<<endl;
 	int num = 0;
 	if (!p->hasRefer)
@@ -265,7 +265,7 @@ switch (p->groupNum)
 			//cout << p->groups.size() << endl;
 			//cout << p->position_edges.size() << endl;
 			if (p->position_edges.size() != 0) {
-				//cout << "匹配" << endl;
+				
 
 				return true;
 			}
@@ -315,7 +315,7 @@ switch (p->groupNum)
 			//cout << p->groups.size() << endl;
 			//cout << p->position_edges.size() << endl;
 			if (p->position_edges.size() != 0) {
-				//cout << "匹配" << endl;
+				
 
 				return true;
 			}
@@ -354,64 +354,7 @@ switch (p->groupNum)
 		break;
 	}	
 
-	//clock_t idenbegin = clock();
-	//	void multi_iden(string& w, vector<pair<int, int>>& section, vector<vector<vector<vector<tuple<int, int, int>>>>> position_edges, vector<vector<vector<int>>>& groups, int groupNum);//扩展
 
-	
-
-	//C_P->checkmatch_time = 0;
-	//cout <<"checkmatch:"<< C_P->checkmatch_time << endl;
-	/*kkmptime += C_P->kmptime;
-	ttemptime += C_P->temptime;*/
-	
-
-	//clock_t iden_time = clock();
-	//cout << "number" << C_P->number << endl;
-	//cout << C_P->temp_Pb.size() << endl;
-	//cout << C_P->Pb.size() << endl;
-	//int inn = -1;
-		//for (auto& inner : C_P->Pb) {    // loop over the outer vector
-		//	auto it = inner.begin();    // get iterator for the inner vector
-		//	std::cout << '<';
-		//	if (it != inner.end()) {
-		//		// print the first pair
-		//		std::cout << '(' << it->first << ',' << it->second << ')';
-		//		// print the rest of the pairs
-		//		for (++it; it != inner.end(); ++it) {
-		//			std::cout << " (" << it->first << ',' << it->second << ')';
-		//		}
-		//	}
-		//	std::cout << ">\n";
-		//}
-	//for (int i = 0; i < C_P->Pb.size(); i++) {
-	//	for (int j = 0; j < C_P->Pb[i].size(); j++) {
-	//		vector<pair<int, int>> w1;
-	//		w1.assign(C_P->Pb[i].begin() + j, C_P->Pb[i].end());
-	//		//cout << C_P->Pb[i].size() << endl;
-	//	//	auto inner = p->groups[0].begin();
-	//	//	bool firstflag=false;
-	//		//cout << w1[0].first <<"  " << w1[0].second << endl;	
-	//		C_P->visited.clear();
-	//		C_P->IsMatch = false;
-	//		clock_t checkbegin = clock();
-	//		//cout << " michu" << endl;
-	//		/*for (int t = 0; t < w1.size(); t++) {
-	//			cout<< w1[t].first << " " << w1[t].second << endl;
-	//		}*/
-	//		C_P->checkmatch(p->position_edges, w1, 0, w1[0].second);
-
-	//		clock_t checkend = clock();
-	//		checktime += checkend - checkbegin;
-	//		if (C_P->IsMatch) {
-	//			//cout << "匹配" << endl;
-	//			clock_t end_time = clock();
-	//			total_match_time += end_time - FA_time;
-	//			total_time += end_time - begin_time;
-	//			return true;
-	//		}
-	//	
-	//	}
-	//}
 	
 	clock_t end_time=clock();
 	total_match_time += end_time - FA_time;
@@ -476,138 +419,7 @@ int main(int argc,char* argv[])
 	float memory_usage=GetMemoryUsage(current_pid);
 	std::cout <<memory_usage-init_memory << std::endl;	
 
-	//int current_pid = GetCurrentPid();
-	//float init_memory=GetMemoryUsage(current_pid);
-	//string E="^\\w?R(x|\\d?).[oPM]((.|.+))((K)E)\\d(([w6])\\d)H+\\2f?(.+).*.*.*\\8$";
-	//string w="tR0NoIt(7uKE9w7HHIt(7u4nselXfZNaLqbsZpQVweYnoeeGkxRTVRgZvnlVFgAag86o5pSgU3zK9lG8GQw5552TpM4cPJGvOq4n-";
-	//cout << match(E, w)<<" ";
-	//cout  <<(double)total_FA_time<<" "<<(double)total_match_time<<" "<< (double)total_time << " "<<(double)total_iden<<" "<<(double)total_check<< " " ;
-	//float memory_usage = GetMemoryUsage(current_pid);
-	//std::cout <<memory_usage-init_memory << std::endl;	
-	//int current_pid = GetCurrentPid();
-	//float init_memory=GetMemoryUsage(current_pid);
-	//string E = "^.*(v([\\]\\.wSwam]))+.Z((.SL[^hxw])+)\\w+a.*.*.*\\3$";
-	// string E = "^((a*)a*).*(a*\\1)\\1\\2$";
-	// string w = "aaaaaaaaaaaaaaab";
-	// // 
-	// //cout << w.length() << endl;
-	//  string E = "^((a*)a*)\\1\\2$";
-	//  string w ="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaas";
-	//  cout<<match(E,w) << endl;
-	//  cout  <<(double)total_FA_time<<" "<<(double)total_match_time<<" "<< (double)total_time << " " << (double)total_iden << " " << (double)total_check << " ";
-	//float memory_usage = GetMemoryUsage(current_pid);
-	//std::cout <<memory_usage-init_memory << std::endl;	
-	/*
-	int TP = 0,FN=0,error=0;
-	ifstream infile,strfile;
-	clock_t match_time = 0;
-	infile.open("../exp_data/VTLeeLab.txt", ios::in);
-	strfile.open("../exp_data/VTLeeLabStr.txt", ios::in);
-	std::cout << 1 << endl;
-	string E, w;
-	int i = 0;
-	while(getline(infile,E))
-	{
-		i++;
-		if (i % 1000 == 0)
-			cout << i<<endl;
-		if (infile.eof())
-			break;
-		if (E == "")
-			break;
-		E = E.substr(0, E.length() - 1);
-		w = getString(strfile);
-		//cout << E << " " << w<<endl;
-		while (w != "escend")
-			{
-			clock_t begin = clock();
-			try {
-				//cout << E <<"     "<< w << endl;
-				clock_t my_begin = clock();
-				bool b = match(E, w);
-				//bool b = std::regex_match(w,regex(E));
-				clock_t end = clock();
-				match_time += end - begin;
-				if (b)
-					TP += 1;
-				else
-				{
-					//cout << E << "   " << w << endl;
-					FN += 1;
-				}
-			}
-			catch (...)
-			{
-				//clock_t end = clock();
-				//match_time += end - begin;
-				cout << "int";
-				error += 1;
-			}
-				w = getString(strfile);
-			}
-		if (i == 60000)
-			break;
-	}
-	cout << "match_time:" << match_time << endl;
-	std::cout << "total_FA_time:" << total_FA_time<<endl;
-	std::cout << "total_match_time:" << total_match_time << endl;
-	std::cout << "total_time;" << total_time << endl;
-	cout << "error:" << error << endl;
-	std::cout << "TP FN accu:" <<TP<<" "<<FN<<" " << double(TP) / double(TP + FN+error);
-	return 0;
-	*/
-	/*string E = "[a-zA-Z0-9]+([._]?[a-zA-Z0-9]+)*";
-	string E="((\"|'|\\]|\\}|\\|\\d|(nan|infinity|true|false|null|undefined|symbol|math)|\\`|\\-|\\+)+[)]*;?((-|~|!|{}|\\|\\||\\+)*.*(.*=.*)))";
-	string E = "(a|a)*(a|a)*\\1z";*/
 	
-	//string E = "a*(a*a*)a*\\1a*\\1z";
-	/*
-	string E = "a*(a*a*)a*\\1zzzz";
-	string w[14];
-	ifstream file;
-	file.open("../data/REWBR3456.txt", ios::in);
-	//match_time = 0;
-	for (int i = 0; i <= 13; i++)
-		file >> w[i];
-	for (int i = 0; i <= 13; i++)
-	{
-		//cout<<w[i];
-		 
-		clock_t begin = clock();
-		for (int j = 0; j < 1; j++)
-		{
-			total_FA_time = 0;
-			total_match_time = 0;
-			total_time = 0;
-			placetime1 = 0;
-			Identime = 0;
-			//cout << "  lentgh  " << w[i].length() << endl;
-			cout<<match(E, w[i]);
-			//cout<<E;
-			cout << "  lentgh  " << w[i].length() << endl;
-			
-			//cout<<std::regex_match(w[i],regex(E));
-		}
-		
-		//cout<<i<<" "<<total_time<<endl;
-		//clock_t end = clock();
-		//cout <<"time" << total_FA_time << " " << total_match_time << " " << total_time<<" "<<placetime1 << endl;
-		//cout <<"Iden " << Identime << endl;
-	}
-		/*cout <<"kmp " << kkmptime << endl;
-		cout <<"check match "<< checktime << endl;
-		cout << "ttemp  " << ttemptime << endl;*/
-	//string E = "(a*)a*bdfgd\\1";
-	//string w = "aaaaaaaaabdfgdaaa";
-	/*total_time = 0;
-	total_FA_time = 0;
-	total_match_time = 0;
-	
-	string E = "(a*)a*bdfgd\\1";
-	string w = "aaaaaaaaabdfgdaaa";
-	cout <<"res"<< match(E, w)<<endl;
-	cout << "time" << total_FA_time << " " << total_match_time << " " << total_time << " " << placetime1 << endl;
-	*/
 	return 0;
 	//int tp = 0, fn = 0, error = 0;
 	//ifstream infile, strfile;

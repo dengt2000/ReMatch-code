@@ -107,9 +107,9 @@ private:
 	vector<vector<vector<bool>>> res;
 	vector<vector<int>> Pb;
 	vector<vector<vector<int>>> block;
-	int current_group;//��ǰbackreference��
-	vector<int> current_PbNum;//��ǰPbNumber
-	unordered_map<int, bool> stateVisited;//记录状态
+	int current_group;
+	vector<int> current_PbNum;
+	unordered_map<int, bool> stateVisited;
 	size_t hashFunction(const std::vector<int>& dimensions, const std::vector<int>& indices, size_t arraySize);
 	size_t visitedsize;
 	vector<int> dimensions;

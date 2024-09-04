@@ -31,7 +31,7 @@ struct pair_comp {
 struct Hashfunc {
 	size_t operator() (const pair<int, int>& key) const {
 		auto seed = hash<int>()(key.first);
-		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//¹şÏ£º¯Êı¿ÉÒÔÓÅ»¯
+		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å»ï¿½
 	}
 };
 struct Equalfunc {
@@ -40,7 +40,7 @@ struct Equalfunc {
 	}
 };
 
-//±íÊ¾NFAµÄ×´Ì¬
+
 class Pattern;
 class NFA_state {
 public:

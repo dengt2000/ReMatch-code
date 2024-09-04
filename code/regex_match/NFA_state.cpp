@@ -416,12 +416,7 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 		nlist = t1;
 		nlist->clear();
 	}
-	//cout << nlist->size();
-	//auto t2 = cmap;
-	///cmap = nmap;
-	//nmap = t2;
-	//nmap->clear();
-	//cout << clist->size() << "¡¡" << cmap->size()<<endl;
+
 	std::fill(refer_visited.begin(), refer_visited.end(), 0);
 	NFA_statesets->clear();
 	for (auto& cur : *clist)
@@ -557,7 +552,7 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 	///cmap = nmap;
 	//nmap = t2;
 	//nmap->clear();
-	//cout << clist->size() << "¡¡" << cmap->size()<<endl;
+	
 	std::fill(refer_visited.begin(), refer_visited.end(), 0);
 	NFA_statesets->clear();
 	for (auto& cur : *clist)

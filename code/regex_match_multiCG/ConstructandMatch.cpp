@@ -424,8 +424,8 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 	}
 	if ((first != -1 && second != -1) && third == 0) {
 		leftPosition[first] = second;
-		//int cG_referno=catchGroup[referNo];//捕获组的No
-		if (catchGroup[referNo] != first && catchGroup[referNo] != -1) {//是反向引用
+		
+		if (catchGroup[referNo] != first && catchGroup[referNo] != -1) {
 			
 			if (second + catchLength[referNo] >= length) {
 				return;
@@ -487,8 +487,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 		int cG_referno = catchGroup[referNo];
 		int lposition = leftPosition[first];
 		if (second < lposition) {
-			if (first ==  cG_referno  ||  cG_referno  == -1) {//如果是空并且是捕获组
-
+			if (first ==  cG_referno  ||  cG_referno  == -1) {
 				current_PbNum[referNo] =-1;
 				// catchGroupPair[referNo].first = leftPosition[first];
 				// catchGroupPair[referNo].second = second;

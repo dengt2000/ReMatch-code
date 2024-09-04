@@ -10,9 +10,8 @@ class Parser
 private:
 	int position = 0;
 	int groupID = 0;
-	bool isPrefix = false;//�Ƿ�Ϊǰ׺
-	bool isSuffix = false;//�Ƿ�Ϊ��׺
-	string input;
+	bool isPrefix = false;
+	bool isSuffix = false;
 	char peek();
 	void eat(char c);
 	char next();
@@ -30,8 +29,8 @@ public:
 	unordered_map<int,shared_ptr<NFA_state>> group_start_states_map;
 	shared_ptr<NFA_state> matchState;
 	int referID[20] = {-1};
-	map<int, int> id2num; //referID ��Ӧ��captureGroup
-	unordered_map<int, int> referNo2num; //referNo������group�� ��Ӧ��captureGroup
+	map<int, int> id2num; 
+	unordered_map<int, int> referNo2num; 
 	int groupCount = 0;
 	int referCount = 0;
 	int stateNo;
