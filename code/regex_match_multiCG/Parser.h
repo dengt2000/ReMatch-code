@@ -26,6 +26,8 @@ private:
 	shared_ptr<Regex> andchoice();
 public:
 	shared_ptr<Regex> re = nullptr;
+	vector<shared_ptr<NFA_state>> group_start_states;
+	unordered_map<int,shared_ptr<NFA_state>> group_start_states_map;
 	shared_ptr<NFA_state> matchState;
 	int referID[20] = {-1};
 	map<int, int> id2num; //referID ��Ӧ��captureGroup

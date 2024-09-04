@@ -15,6 +15,12 @@ NFA_state::NFA_state(int c) :c(c), id(count++), out1(nullptr)
 	//{
 	cur_set = make_shared<unordered_set<tuple<int, int,int>,Tuplefunc>>();
 	next_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
+	first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	first_set->reserve(max(referNo * wlen, 0));
+	first_set->rehash(max(referNo * wlen, 0));
+	next_first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	next_first_set->reserve(max(referNo * wlen, 0));
+	next_first_set->rehash(max(referNo * wlen, 0));
 	cur_set->reserve(max(referNo * wlen, 0));
 	next_set->reserve(max(referNo * wlen, 0));
 	cur_set->rehash(max(referNo * wlen, 0));
@@ -34,6 +40,12 @@ NFA_state::NFA_state(char c) :c(c - ' '), id(count++), out1(nullptr)
 	 {*/
 	cur_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
 	next_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
+	first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	first_set->reserve(max(referNo * wlen, 0));
+	first_set->rehash(max(referNo * wlen, 0));
+	next_first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	next_first_set->reserve(max(referNo * wlen, 0));
+	next_first_set->rehash(max(referNo * wlen, 0));
 	cur_set->reserve(max(referNo * wlen, 0));
 	next_set->reserve(max(referNo * wlen, 0));
 	cur_set->rehash(max(referNo * wlen, 0));
@@ -53,8 +65,15 @@ NFA_state::NFA_state(int c, shared_ptr<NFA_state> out1, shared_ptr <NFA_state> o
 	{*/
 	cur_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
 	next_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
+	first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	first_set->reserve(max(referNo * wlen, 0));
+	first_set->rehash(max(referNo * wlen, 0));
+	next_first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	next_first_set->reserve(max(referNo * wlen, 0));
+	next_first_set->rehash(max(referNo * wlen, 0));
 	cur_set->reserve(max(referNo * wlen, 0));
 	next_set->reserve(max(referNo * wlen, 0));
+
 	cur_set->rehash(max(referNo * wlen, 0));
 	next_set->rehash(max(referNo * wlen, 0));
 	if (out1 != nullptr)
@@ -75,6 +94,12 @@ NFA_state::NFA_state(char c, shared_ptr<NFA_state> out1, shared_ptr<NFA_state> o
 	{*/
 	cur_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
 	next_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
+	first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	first_set->reserve(max(referNo * wlen, 0));
+	first_set->rehash(max(referNo * wlen, 0));
+	next_first_set = make_shared<unordered_set<tuple<int, int, int>, Tuplefunc>>();
+	next_first_set->reserve(max(referNo * wlen, 0));
+	next_first_set->rehash(max(referNo * wlen, 0));
 	cur_set->reserve(max(referNo * wlen, 0));
 	next_set->reserve(max(referNo * wlen, 0));
 	cur_set->rehash(max(referNo * wlen, 0));

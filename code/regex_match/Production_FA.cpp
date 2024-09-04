@@ -7,16 +7,10 @@ Production_FA::Production_FA(string E, string w) {
 	shared_ptr<Parser>p = make_shared<Parser>(E);
 	//cout << p->re->toString() << endl;
 	hasRefer = p->hasRefer;
-	//lookaheads = p->lookaheads;
-	//lookbehinds = p->lookbehinds;
+	group_start_state=p->group_start_state;
 	lookarounds = p->lookarounds;
 	lookaroundNum=p->lookarounds->size();
 	shared_ptr<Regex> re = p->re;
-	/*
-	if (referCount == 0)
-		return;
-	*/
-	//cout << "01\n";
 	clist = make_shared<vector<shared_ptr<NFA_state>>>();
 	this->w = w;
 	this->E = E;
@@ -26,17 +20,13 @@ Production_FA::Production_FA(string E, string w) {
 	for (int i = 0; i < referCount + lookarounds->size() + 2; i++)
 	{
 		position_edges[i].resize(w.length() + 3);
-		//(*check_ahead_edges)[i].resize(w.length() + 3);
-		//(*check_behind_edges)[i].resize(w.length()+3);
 	}
 	nlist = make_shared<vector<shared_ptr<NFA_state>>>();
 	tlist = make_shared<vector<shared_ptr<NFA_state>>>();
-	//cmap=shared_ptr<unordered_map<int, shared_ptr<Production_State>>>(new unordered_map<int,shared_ptr<Production_State>>);
-	//nmap = shared_ptr<unordered_map<int, shared_ptr<Production_State>>>(new unordered_map<int, shared_ptr<Production_State>>);
 	NFA_statesets = make_shared<unordered_set<shared_ptr<NFA_state>>>();
 	int w_length = w.length();
-	groups.resize(referCount + 1);
-	for (int i = 0; i < referCount + 1; i++)
+	groups.resize(1);
+	for (int i = 0; i < 1; i++)
 	{
 		groups[i].resize(w_length + 2);
 		for (int j = 0; j < w_length + 2; j++)
@@ -45,16 +35,8 @@ Production_FA::Production_FA(string E, string w) {
 	re->start->cur_set = make_shared<boost::dynamic_bitset<>>();
 	re->start->cur_set->resize((max(colsize * rawsize, 0)));
 	re->start->next_set->resize((max(colsize * rawsize, 0)));
-	//cout << re->start->cur_set->size()<<endl;
 	re->start->referNo = -1;
-	//re->start->cur_set->insert(make_pair(-1, 0));
 	re->start->groupType = 1;
-	//shared_ptr<Production_State> pstart (new Production_State(1,-1, re->start->id));
-	//clock_t begin = clock();
-	//pstart->addPlace(-1,-1);
-	//start = pstart;
-	//matchState = make_shared<Production_State>(w.length(), -1);
-	//matchState->isMatch = true;
 	matchState = p->matchState;
 	matchState->referNo = referCount + 1;
 	matchState->groupType = 0;
@@ -62,14 +44,21 @@ Production_FA::Production_FA(string E, string w) {
 	inner.resize(matchState->id + 1);
 	vector<pair<int, int>> interval;
 	bool first = true;
-	min_t.resize(w.length() + 1);
-	fill(min_t.begin(), min_t.end(), INT_MAX);
+	if(hasRefer)
+	{
+		referEndMap.resize(w.length()+1);
+		min_t.resize(w.length() + 1);
+		fill(min_t.begin(), min_t.end(), INT_MAX);
+		search_group_map(group_start_state,w);
+	}
 	//cmap->insert(make_pair(re->start->id, pstart));
 	get_inner(matchState);
 	clist->emplace_back(re->start);
-	for (int i = 0; i < w.length(); i++)
+	for (int i = 0; i <= w.length(); i++)
 	{
-		char c = w[i];
+		char c = ' ';
+		if (i<w.length())
+			c=w[i];
 		std::fill(visited.begin(), visited.end(), 0);
 		if (clist->size())
 		{
@@ -82,9 +71,15 @@ Production_FA::Production_FA(string E, string w) {
 		}
 		if (hasRefer)
 		{
+			for (auto &cur:referEndMap[i])
+			{
+				step(cur,c,i,cur);
+			}
+		}
+		if (hasRefer)
+		{
 			for (auto& node : *NFA_statesets)
 			{
-
 				switch (node->c)
 				{
 				case Type::LookAround:
@@ -108,16 +103,27 @@ Production_FA::Production_FA(string E, string w) {
 				case Type::ReferStart:
 				{
 					auto pair = make_pair(node->referNo, i);
-					for(int j=node->next_set->find_first();j!=node->next_set->npos;)
+					for (int j = node->next_set->find_first(); j != node->next_set->npos;)
 					{
-						int t0 = j / colsize-1;
+						int t0 = j / colsize - 1;
 						int t1 = j % colsize - 1;
-						if (t0>-1)
+						if (t0 > -1)
 						{
 							//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
-							addEdge(make_pair(t0,t1), pair);
+							addEdge(make_pair(t0, t1), pair);
 						}
 						j = node->next_set->find_next(j);
+					}
+					auto it=group_map.find(i);
+					if (it!=group_map.end()){
+						for (int j:it->second){
+							if (node->referNo==0){
+							groups[0][i][j]=1;
+							}
+							if (j>i){	
+								referEndMap[j].insert(node->out1);
+							}
+						}
 					}
 					/*
 					for (int j = node->next_set->find_first(); j < node->next_set->size(); j = node->next_set->find_next(j))
@@ -129,23 +135,23 @@ Production_FA::Production_FA(string E, string w) {
 					node->cur_set->reset();
 					break;
 				}
-				case Type::GroupEnd:
-				case Type::ReferEnd:
-				{
-					for (int j = node->next_set->find_first(); j != node->next_set->npos;)
-					{
-						int t0 = j / colsize - 1;
-						int t1 = j % colsize - 1;
-						if (t1 < min_t[i])
-							min_t[i] = t1;
-						j = node->next_set->find_next(j);
-						//cout << node->referNo << " " << t1 << " " << i<<endl;
-						groups[node->referNo][t1][i] = 1;
-					}
-					node->next_set->reset();
-					node->cur_set->reset();
-					break;
-				}
+				// case Type::GroupEnd:
+				// case Type::ReferEnd:
+				// {
+				// 	for (int j = node->next_set->find_first(); j != node->next_set->npos;)
+				// 	{
+				// 		int t0 = j / colsize - 1;
+				// 		int t1 = j % colsize - 1;
+				// 		if (t1 < min_t[i])
+				// 			min_t[i] = t1;
+				// 		j = node->next_set->find_next(j);
+				// 		//cout << node->referNo << " " << t1 << " " << i<<endl;
+				// 		groups[node->referNo][t1][i] = 1;
+				// 	}
+				// 	node->next_set->reset();
+				// 	node->cur_set->reset();
+				// 	break;
+				// }
 				case Type::MatchState:
 					if (!hasRefer)
 					{
@@ -191,82 +197,8 @@ Production_FA::Production_FA(string E, string w) {
 		///cmap = nmap;
 		//nmap = t2;
 		//nmap->clear();
-		//cout << clist->size() << "¡¡" << cmap->size()<<endl;
+		//cout << clist->size() << "ï¿½ï¿½" << cmap->size()<<endl;
 	}
-	std::fill(visited.begin(), visited.end(), 0);
-	NFA_statesets->clear();
-	for (auto& cur : *clist)
-	{
-		//shared_ptr<Production_State> &curstate = cmap->at(cur->id);
-		//cout <<"\nfinal:"  << cur->c << " " << curstate->id.first;
-		step(cur->out1, ' ', w.length(), cur);
-		step(cur->out2, ' ', w.length(), cur);
-	}
-
-	if (!hasRefer)
-	{
-		return;
-	}
-
-	for (auto& node : *NFA_statesets)
-	{
-		if (node->c == Type::ReferEnd)
-		{
-			for (int j = node->next_set->find_first(); j != node->next_set->npos;j=node->next_set->find_next(j))
-			{
-				int t0 = j / colsize - 1;
-				int t1 = j % colsize - 1;
-				if (t1 < min_t[w.length()])
-					min_t[w.length()] = t1;
-				groups[node->referNo][t1][w.length()] = 1;
-			}
-		}else if (node->c==Type::MatchState){
-			for (int j = matchState->next_set->find_first(); j != matchState->next_set->npos;)
-			{
-				int t0 = j / colsize - 1;
-				int t1 = j % colsize - 1;
-				if (t0>=0)
-				{
-					//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
-					addEdge(make_pair(t0, t1), make_pair(-1, -1));
-				}
-				j = matchState->next_set->find_next(j);
-			}
-			matchState->next_set->reset();
-			matchState->cur_set->reset();
-	}
-	}
-	//clist->clear();
-	//nlist->clear();
-	//clist->emplace_back(matchState);
-	//for (int i = w.length() - 1; i >= 0; i--)
-	//{
-	//	char c = w[i];
-	//	std::fill(visited.begin(), visited.end(), 0);
-	//	if (clist->size())
-	//	{
-	//		for (auto& cur : *clist)
-	//		{
-	//			//shared_ptr<Production_State> curstate= cmap->at(cur->id);
-	//			for (auto& state : cur->reverse_out)
-	//				reverse_step(state, c, i, cur);
-	//		}
-	//	}
-	//	auto t1 = clist;
-	//	clist = nlist;
-	//	nlist = t1;
-	//	nlist->clear();
-	//}
-	//std::fill(visited.begin(), visited.end(), 0);
-	//if (clist->size())
-	//{
-	//	for (auto& cur : *clist)
-	//	{
-	//		//shared_ptr<Production_State> curstate= cmap->at(cur->id);
-	//		for (auto& state : cur->reverse_out)
-	//			reverse_step(state, ' ', -1, cur);
-	//	}
-	//}
 	for (auto& la : *lookarounds)
 	{
 		if (!la->ahead)
@@ -274,9 +206,11 @@ Production_FA::Production_FA(string E, string w) {
 		else
 			la->refer_reverse_bfs(w, min_t, groups, referCount);
 	}
+	if (hasRefer){
 	for (int i = 0; i <= w.length(); i++)
 		if (min_t[i] < INT_MAX)
 			interval.emplace_back(make_pair(min_t[i], i-1));
+	}
 	//cout << "interval:";
 	//for (int i = 0; i < interval.size(); i++)
 	//	cout << interval[i].first << " " << interval[i].second << endl;
@@ -304,84 +238,7 @@ Production_FA::Production_FA(string E, string w) {
 			section.emplace_back(temp);
 		reverse(section.begin(), section.end());
 	}
-
 }
-//void Production_FA::reverse_step(shared_ptr<NFA_state> s, char c, int i,
-//	shared_ptr<NFA_state> cur)
-//{
-//	if (c < 0 || c>255)
-//		throw 4;
-//	if (s == nullptr)
-//		return;
-//	//cout <<curstate->id.first<<" "<<curstate->id.second<<" "<<s->id<<" " << i << " " << s->c << endl;
-//	if (s->lock)
-//		return;
-//	//s->visited=1;
-//	if (visited[s->id] > 0)
-//		return;
-//	visited[s->id]++;
-//	switch (s->c)
-//	{
-//	case Type::Split:
-//	{
-//		//cout <<"Split:" << curstate->groupType;
-//		s->lock = true;
-//		for (auto& state : s->reverse_out)
-//			reverse_step(state, c, i, cur);
-//		s->lock = false;
-//		return;
-//	}
-//	case Type::LookAround:
-//	{
-//		auto la = dynamic_pointer_cast<LookAroundState>(s);
-//		if (!la->hasRefer)
-//			if (!la->match(w, i + 1))
-//				return;
-//		for (auto& state : s->reverse_out)
-//		{
-//			reverse_step(state, c, i, cur);
-//		}
-//		return;
-//	}
-//	case Type::Blank:
-//	{
-//		for (auto& state : s->reverse_out)
-//		{
-//			reverse_step(state, c, i, cur);
-//		}
-//		return;
-//	}
-//	case Type::ReferEnd:
-//	case Type::GroupEnd:
-//	{
-//		//cout << "groupEnd";
-//		addEdge(make_pair(s->referNo, i), make_pair(-1, -1));
-//		return;
-//	}
-//	default:
-//		break;
-//	}
-//	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
-//		|| (s->c == Type::SingleLetter && (islower(c) || isupper(c)))
-//		|| (s->c == Type::NonSingleLetter && !(islower(c) || isupper(c)))
-//		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
-//		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
-//	{
-//		if (visited[s->id] == 1)
-//			nlist->emplace_back(s);
-//	}
-//	else if (s->c == Type::Scale)
-//	{
-//		shared_ptr<ScaleState> ss = dynamic_pointer_cast<ScaleState>(s);
-//		if (ss->scale[c])
-//		{
-//			//s->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
-//			*s->next_set |= *cur->cur_set;
-//			if (visited[s->id] == 1)
-//				nlist->emplace_back(s);
-//		}
-//	}
-//}
 
 void Production_FA::get_inner(shared_ptr<NFA_state>start)
 {
@@ -442,7 +299,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 		return;
 	if (!hasRefer && visited[s->id] >= 1)
 		return;
-
 	//cout <<curstate->id.first<<" "<<curstate->id.second<<" "<<s->id<<" " << i << " " << s->c << endl;
 	if (s->lock)
 		return;
@@ -462,7 +318,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 			//*s->next_set |= *cur->cur_set;
 			NFA_statesets->insert(s);
 			res = true;
-
 		}
 		return;
 	}
@@ -539,117 +394,66 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 	case Type::GroupStart:
 	{
 		//cout << "groupStart";
-		if (cur->groupType == 0)
+		// if (cur->groupType == 0)
+		// {
+		// 	if (cur->referNo != s->referNo)
+		// 		return;
+		// 	cur->cur_set->set((s->referNo + 1) * colsize + i + 1);
+		// 	//(* cur->cur_set)[i+1] = 1;
+		// 	//groupStarts[s->referNo]->insert(i);
+		// 	s->lock = true;
+		// 	step(s->out1, c, i, cur);
+		// 	step(s->out2, c, i, cur);
+		// 	//cur->cur_set->erase(make_pair(s->referNo, i));
+		// 	cur->cur_set->reset((s->referNo + 1) * colsize + i + 1);
+		// 	//(*cur->cur_set)[i+1] = 0;
+		// 	s->lock = false;
+		// 	return;
+		// }
+		if (cur->groupType == 1)
 		{
-			if (cur->referNo != s->referNo)
-				return;
-			//clock_t begin = clock();
-			//curstate->addPlace(s->referNo, i);
-			//cur->cur_set->insert(make_pair(s->referNo, i));
-			cur->cur_set->set((s->referNo + 1) * colsize + i + 1);
-			//(* cur->cur_set)[i+1] = 1;
-			//groupStarts[s->referNo]->insert(i);
-			s->lock = true;
-			step(s->out1, c, i, cur);
-			step(s->out2, c, i, cur);
-			//cur->cur_set->erase(make_pair(s->referNo, i));
-			cur->cur_set->reset((s->referNo + 1) * colsize + i + 1);
-			//(*cur->cur_set)[i+1] = 0;
-			s->lock = false;
-			return;
-		}
-		else if (cur->groupType == 1)
-		{
-			/*
-			for (auto t : curstate->places)
-			{
-				addEdge(t, make_pair(s->referNo, i));
-			}
-			*/
-			//shared_ptr<Production_State> nextstate (new Production_State(0, i, -1));
-			//cout << s->next_set->size();
-		//	cout << cur->cur_set->size();
-			NFA_statesets->insert(s);
 			*s->next_set |= *cur->cur_set;
-			//*s->next_set |= *cur->cur_set;
-			//(*s->cur_set)[i+1] = 1;
-			s->cur_set->set((s->referNo+1)*colsize+i+1);
-			//nextstate->addPlace(s->referNo, i);
-			//groupStarts[s->referNo]->insert(i);
-			//curstate->out.push_back(nextstate);
-			s->groupType = 0;
-			s->lock = true;
-			step(s->out1, c, i, s);
-			step(s->out2, c, i, s);
-			s->lock = false;
+			// s->cur_set->set((s->referNo+1)*colsize+i+1);
+			if (visited[s->id]==1)
+			{
+				NFA_statesets->insert(s);
+			}
+			if (group_can_be_empty){
+				s->lock = true;
+				step(s->out1, c, i, s);
+				step(s->out2, c, i, s);
+				s->lock = false;
+			}
 			return;
 		}
 	}
 	case Type::ReferEnd:
 	case Type::GroupEnd:
 	{
-		if (cur->groupType == 1)
-		{
-			cur->cur_set->set((s->referNo+1)*colsize+i);
-			//curstate->addPlace(s->referNo, i-1);
-			//groupEnds[s->referNo]->insert(i - 1);
-			s->lock = true;
-			step(s->out1, c, i, cur);
-			cur->cur_set->reset((s->referNo + 1)* colsize + i);
-			//(*cur->cur_set)[i] = 0;
-			s->lock = false;
-			return;
-		}
-		else if (cur->groupType == 0)
-		{
-			/*
-			for (auto t : curstate->places)
-			{
-				groups[s->referNo].insert(make_pair(t.second, i - 1));
-			}
-			*/
-			//for (auto t : *cur->cur_set)
-			//	s->next_set->insert(t);
-			*s->next_set |= *cur->cur_set;
-			s->cur_set->set((s->referNo + 1)* colsize + i);
-			//s->cur_set->insert(make_pair(s->referNo, i - 1));
-			//(*s->cur_set)[i] = 1;
-			NFA_statesets->insert(s);
-			//if (s->c == Type::ReferEnd)
-			//{
-			//	debug = true;
-			//}
-			//shared_ptr<Production_State> nextstate (new Production_State(1, i, -1));
-			//nextstate->addPlace(s->referNo, i - 1);
-			//groupEnds[s->referNo]->insert(i - 1);
-			//curstate->out.push_back(nextstate);
-			s->groupType = 1;
-			s->lock = true;
-			step(s->out1, c, i, s);
-			s->lock = false;
-			return;
-		}
-	}
-	/*
-	case Type::ReferStart:
-	{
-		cout << "referStart";
-		Production_State* t = new Production_State(ReferStart, i, -1);
-		curstate->out.push_back(t);
-		step(s->out1, c, i, t);
-		s->visited = false;
+		// if (cur->groupType == 1)
+		// {
+		// 	cur->cur_set->set((s->referNo+1)*colsize+i);
+		// 	s->lock = true;
+		// 	step(s->out1, c, i, cur);
+		// 	cur->cur_set->reset((s->referNo + 1)* colsize + i);
+		// 	s->lock = false;
+		// 	return;
+		// }
+		// else if (cur->groupType == 0)
+		// {
+		// 	*s->next_set |= *cur->cur_set;
+		// 	s->cur_set->set((s->referNo + 1)* colsize + i);
+		// 	NFA_statesets->insert(s);
+		s->groupType = 1;
+		s->cur_set->set((s->referNo + 1)* colsize + i);
+		s->lock = true;
+		step(s->out1, c, i, s);
+		step(s->out2, c, i, s);
+		s->lock = false;
+		s->cur_set->reset((s->referNo + 1)* colsize + i);
 		return;
 	}
-	case Type::ReferEnd:
-	{
-		cout << "referEnd";
-		Production_State* t = new Production_State(ReferEnd, i-1, -1);
-		curstate->out.push_back(t);
-		step(s->out1, c, i, t);
-		s->visited = false;
-		return;
-	}
-	*/
+
 	default:
 		break;
 	}
@@ -659,10 +463,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
 		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 	{
-		//if (i==w.length()-1)
-		//	cout << "0"<< c << s->c<<" "<<i<<endl;
-		//shared_ptr<Production_State> state = getState(nmap, i, s->id);
-		//state->groupType = cur->groupType;
 		if (hasRefer)
 		{
 			s->groupType = cur->groupType;
@@ -673,7 +473,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 			//*s->next_set |= *cur->cur_set;
 			//curstate->out.push_back(state);
 		}
-		//clock_t begin = clock();
 		if (visited[s->id] == 1)
 			nlist->emplace_back(s);
 		//placetime1 += clock() - begin;
@@ -701,74 +500,161 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 }
 void Production_FA::addEdge(pair<int, int> v1, pair<int, int> v2)
 {
-	//position_edges.insert(make_pair(v1, v2));
 	if (v2.first == -1 && v2.second >= 0)
 		return;
-	//if (v1.first >referCount)
-	//{
-		//shared_ptr<LookAroundState> la = lookaheads->at(-v1.first - 2);
-		//(*check_ahead_edges)[v2.first][v2.second].insert(la);
-		//la->start_positions[v1.second+1].emplace_back(make_pair(v2.first, v2.second));
-	//}
-	//else
 	position_edges[v1.first + 1][v1.second + 1].push_back(v2);
-	/*
-	if (res == position_edges.end())
-	{
-		vector<pair<int,int>> t;
-		t.emplace_back(v2);
-		position_edges.insert(make_pair(v1, t));
-	}
-	else
-	{
-		res->second.emplace_back(v2);
-	}
-	*/
-}
-/*
-shared_ptr<Production_State> Production_FA::getState(shared_ptr<unordered_map<int, shared_ptr<Production_State>>>& map,int id1,int id2)
-{
-	auto s = map->find(id2);
-	if (s !=map->end())
-		return s->second;
-	else
-	{
-		shared_ptr<Production_State> state (new Production_State(id1, id2));
-		map->insert(make_pair(id2, state));
-		return state;
-	}
 }
 
-Production_State::Production_State(int id1, int id2):id(make_pair(id1,id2)),groupType(0)
+
+void Production_FA::search_group_map(shared_ptr<NFA_state> group_start_state,string w)
 {
+	for (int i = 0; i <= w.length(); i++)
+	{
+		char c=' ';
+		if (i<w.length()){
+			c = w[i];
+		}
+		std::fill(visited.begin(), visited.end(), 0);
+		group_start_state->cur_set->reset();
+		group_start_state->cur_set->set(i);
+		clist->emplace_back(group_start_state);
+		if (clist->size())
+		{
+			for (auto& cur : *clist)
+			{
+				//shared_ptr<Production_State> curstate= cmap->at(cur->id);
+				simple_step(cur->out1, c, i, cur);
+				simple_step(cur->out2, c, i, cur);
+			}
+			for (auto& node : *NFA_statesets)
+			{
+				for (int j = node->next_set->find_first(); j != node->next_set->npos;)
+					{
+						int t0 = j / colsize ;
+						int t1 = j % colsize ;
+						if (t1 < min_t[i])
+							min_t[i] = t1;
+						if (t1==i)
+						{
+							group_can_be_empty=true;
+						}
+						auto it=group_map.find(t1);
+						if (it!= group_map.end())
+						{
+							it->second.emplace_back(i);
+						}else{
+							group_map.emplace(t1,vector<int>{i});
+						}
+						j = node->next_set->find_next(j);
+					}
+					node->next_set->reset();
+					node->cur_set->reset();
+			}
+			if (nlist->size())
+			{
+				for (auto& nxt : *nlist)
+				{
+					auto temp = nxt->cur_set;
+					nxt->cur_set = nxt->next_set;
+					nxt->next_set = temp;
+					nxt->next_set->reset();
+				}
+			}
+			auto tlist = clist;
+			clist = nlist;
+			nlist = tlist;
+			nlist->clear();
+		}
+	}
+	clist->clear();
+	nlist->clear();
+	std::fill(visited.begin(), visited.end(), 0);
 }
 
-Production_State::Production_State(int type, int id1, int id2):id(make_pair(id1,id2)),groupType(type)
+void Production_FA::simple_step(shared_ptr<NFA_state> s, char c,int i,shared_ptr<NFA_state> cur)
 {
-}
-/*
-void Production_State::addPlace(int groupno,int place)
-{
-	places.insert(make_pair(groupno,place));
-}
-void Production_State::addPlaces(set<pair<int, int>,pair_comp> &places)
-{
-	for (auto w : places)
-		this->places.insert(w);
-}
-/*
-Position_Node::Position_Node(int type)
-{
-	this->type = type;
-}
+	if (c < 0 || c>255)
+		throw 4;
+	if (s == nullptr)
+		return;
+	if (s->lock)
+		return;
+	visited[s->id]++;
+	switch (s->c)
+	{
+		case 257:
+		{
+				*s->next_set |= *cur->cur_set;
+			if (visited[s->id]==1){
+				NFA_statesets->insert(s);
+			}
+				return;
+		}
+		case Type::LookAround:
+		{
+			shared_ptr<LookAroundState> la = dynamic_pointer_cast<LookAroundState>(s);
+			if (la->hasRefer || !la->match(w, i)){
+				return;
+			}
+			s->lock = true;
+			simple_step(s->out1, c, i, s);
+			s->lock = false;
+			return;
+		}
+		case Type::Split:
+		{
+			s->lock = true;
+			simple_step(s->out1, c, i, cur);
+			simple_step(s->out2, c, i, cur);
+			s->lock = false;
+			return;
+		}
+		case Type::MetaCharacter:
+		{
+			bool meta = false;
+			if (i > 0 && i < w.length())
+			{
+				if (isalnum(w[i - 1]) && isalnum(w[i]))
+					return;
+				if (!isalnum(w[i - 1]) && !isalnum(w[i]))
+					return;
+			}
+			s->lock = true;
+			//cout << s->out1->c << " " << s->out2->c << endl;
+			simple_step(s->out1, c, i, cur);
+			simple_step(s->out2, c, i, cur);
+			s->lock = false;
+			return;
+		}
+		case Type::Blank:
+		{
+			s->lock = true;
+			simple_step(s->out1, c, i, cur);
+			s->lock = false;
+			return;
+		}
 
-void Position_Node::addNext(Position_Node* p)
-{
-	next.push_back(p);
+		default:
+			break;
+		}
+		if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
+			|| (s->c == Type::SingleLetter && (isspace(c)))
+			|| (s->c == Type::NonSingleLetter && !(isspace(c)))
+			|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+			|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
+		{
+			*s->next_set |= *cur->cur_set;
+			if (visited[s->id] == 1)
+				nlist->emplace_back(s);
+		}
+		else if (s->c == Type::Scale)
+		{
+			shared_ptr<ScaleState> ss = dynamic_pointer_cast<ScaleState>(s);
+			if (ss->scale[c])
+			{
+				*s->next_set |= *cur->cur_set;
+				if (visited[s->id] == 1)
+					nlist->emplace_back(s);
+			}
+		}
 }
-*/
-/*
-LookAround_State::LookAround_State(shared_ptr<LookAroundState> p, int group_state, int id1, int id2):Production_State(group_state,id1,id2),s(p)
-{
-}
-*/

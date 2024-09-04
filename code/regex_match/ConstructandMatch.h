@@ -45,7 +45,7 @@ public:
 
 	//bool w1_set_match(vector<pair<int, int>> w1, unordered_map<pair<int, int>, set<pair<int, int>, pair_comp>, Hashfunc, Equalfunc> position_edges, pair<int, int>& j1, pair<int, int>& j2, int i, unordered_map<pair<int, int>, bool, Hashfunc, Equalfunc> visited);
 private:
-	vector<int> BRNo;//ÕÒµ½Ã¿¸ö·´ÏòÒýÓÃ¶ÔÓ¦µÄµÚÒ»¸ö²¶»ñ×éµÄÎ»ÖÃ
+	vector<int> BRNo;//ï¿½Òµï¿½Ã¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¶ï¿½Ó¦ï¿½Äµï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î»ï¿½ï¿½
 	bool checkahead(vector<vector<vector<pair<int, int>>>>& position_edges,  int first, int second);
 	bool checkbehind(vector<vector<vector<pair<int, int>>>>& position_edges,  int first, int second);
 	void getBRNo(int CGs,vector<int>groupNo);
@@ -55,6 +55,7 @@ private:
 	int length;
 	boost::dynamic_bitset<> Pb_mark;
 	void checkmatch(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second);
+	void checkEmptyGroup(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second);
 
 	//vector<pair<int, int>, int> visited;//<i,j>group
 	//unordered_map<pair<int, pair<int, int>>, bool, pairpairHashfunc, pairpairEqualfunc> visited;

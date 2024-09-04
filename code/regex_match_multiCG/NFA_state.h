@@ -6,7 +6,7 @@
 #include<algorithm>
 #include<memory>
 #include<bitset>
-//#include<boost/dynamic_bitset.hpp>
+#include<boost/dynamic_bitset.hpp>
 extern int wlen;
 using namespace std;
 
@@ -60,6 +60,8 @@ public:
 	void setReferstate(int i);
 	shared_ptr<unordered_set<tuple<int, int,int>, Tuplefunc>> cur_set;
 	shared_ptr<unordered_set<tuple<int, int,int>, Tuplefunc>> next_set;
+	shared_ptr<unordered_set<tuple<int, int, int>, Tuplefunc>> first_set;
+	shared_ptr<unordered_set<tuple<int, int, int>, Tuplefunc>> next_first_set;
 	int groupType;
 	int groupNo;
 	int c;

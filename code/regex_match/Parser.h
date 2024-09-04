@@ -10,8 +10,8 @@ class Parser
 private:
 	int position = 0;
 	int groupID = 0;
-	bool isPrefix = false;//�Ƿ�Ϊǰ׺
-	bool isSuffix = false;//�Ƿ�Ϊ��׺
+	bool isPrefix = false;//�Ƿ�Ϊǰ׺
+	bool isSuffix = false;//�Ƿ�Ϊ��׺
 	string input;
 	char peek();
 	void eat(char c);
@@ -26,6 +26,7 @@ private:
 	shared_ptr<Regex> andchoice();
 public:
 	shared_ptr<Regex> re = nullptr;
+	shared_ptr<NFA_state> group_start_state;
 	shared_ptr<NFA_state> matchState;
 	int referID = -1;
 	int curreferCount = 0;

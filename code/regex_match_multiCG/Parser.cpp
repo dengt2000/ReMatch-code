@@ -204,15 +204,16 @@ shared_ptr<Regex> Parser::base()
 		{
 			int tempid = ++groupID;
 			int referno = -1;
-			if (id2num.find(tempid) != id2num.end())
-			{
-				referno = referCount++;
-				referNo2num.insert(make_pair(referno, id2num[tempid]));
-			}
 			shared_ptr<Regex> r = regex();
 			group.insert(make_pair(tempid, r));
 			if (id2num.find(tempid) != id2num.end())
 			{
+				referno = referCount++;
+				int groupNo = id2num[tempid];
+				referNo2num.insert(make_pair(referno, groupNo));
+				r->start->referNo = referno;
+				group_start_states.emplace_back(r->start);
+				group_start_states_map[groupNo] = r->start;
 				r->setGroupState(true, false, referno);
 			}
 			r->setGroupID(tempid);
@@ -242,7 +243,8 @@ shared_ptr<Regex> Parser::base()
 			}
 			if (id > groupID)
 				throw 3;
-			shared_ptr<Regex> re = group[id]->copy();
+			//shared_ptr<Regex> re = group[id]->copy();
+			shared_ptr<Regex> re = make_shared<BackRefer>();
 			referNo2num.insert(make_pair(referCount, id2num[id]));
 			re->setGroupState(false, true, referCount++);
 			//re->referNo = referCount++;

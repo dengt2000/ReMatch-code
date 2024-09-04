@@ -108,13 +108,16 @@ void Construct_Pb::iden( string& w, vector<pair<int, int>>& section, vector<vect
 	vector<pair<int, int>> t_Pb;
 	length = w.length();
 	Pb_mark.resize(length * length);
-	visited.resize(groups.size());
-	for (int i = 0; i < groups.size(); i++) {
-		visited[i].resize(w.length());
-		for (int j = 0; j < w.length(); j++) {
-			visited[i][j].resize(w.length());
+	visited.resize(referCount+2);
+	for (int i = 0; i < referCount+2; i++) {
+		visited[i].resize(w.length()+2);
+		for (int j = 0; j < w.length()+2; j++) {
+			visited[i][j].resize(w.length()+2);
 		}
 	}
+	w1_len = -1;
+	checkEmptyGroup(position_edges, 0, -1);
+
 	for (int i = temp_s.size() + 1; i < n; ++i) {
 
 		int a, b;
@@ -185,6 +188,49 @@ void Construct_Pb::iden( string& w, vector<pair<int, int>>& section, vector<vect
 
 
 }
+
+
+void Construct_Pb::checkEmptyGroup(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
+	// cout<<"checkEmptyGroup"<<first<<" "<<second<<endl;
+	int len_lim = position_edges[0].size();
+	if (IsMatch) {
+		return;
+	}
+	if (second + 1 >= len_lim) {
+		return;
+	}
+	if (visited[first+1][second - w1_len+1][second+1]) {
+		return;
+	}
+	if (position_edges[first + 1][second + 1].empty()) {
+		return;
+	}
+	// cout<<"visited"<<first+1<<" "<<second - w1_len+1<<" "<<second+1<<endl;
+	visited[first+1][second - w1_len+1][second+1] = true;
+	auto& edges = position_edges[first + 1][second + 1];
+	for (auto it = edges.begin(); it != edges.end(); ++it) {
+		int ffirst = it->first;
+		int ssecond = it->second;
+		// cout<<"nextcheck"<<ffirst<<" "<<ssecond<<endl;
+		if (ssecond + w1_len >= length) {
+			continue;
+		}
+		if (ffirst == -1 && ssecond == -1) {
+			IsMatch = true;
+			return;
+		}
+		// cout<<"visited[ffirst+1][ssecond - w1_len+1][ssecond+1]"<<endl;
+		// cout<<"visited"<<ffirst+1<<" "<<ssecond +1<<" "<<ssecond+w1_len+1<<endl;
+		if (visited[ffirst+1][ssecond +1][ssecond+w1_len+1]) {
+			return;
+		}
+		if (IsMatch) {
+			return;
+		}
+		// cout<<"checkEmptyGroup"<<ffirst<<" "<<ssecond + w1_len<<endl;
+		checkEmptyGroup(position_edges, ffirst, ssecond + w1_len);
+	}
+}
 void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
 	int len_lim = position_edges[0].size();
 	
@@ -197,7 +243,7 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 		return;
 	}
 	
-	if (visited[first][second - w1_len][second]) {
+	if (visited[first+1][second - w1_len+1][second+1]) {
 		return;
 	}
 
@@ -206,7 +252,7 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 	}
 	
 
-	visited[first][second - w1_len][second] = true;
+	visited[first+1][second - w1_len+1][second+1] = true;
 
 	//int s_w1_diff = w1[0].second - w1[0].first;
 	//cout << first << " " << second << " " << IsMatch << endl;
@@ -235,12 +281,9 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 			continue;
 		}
 		//cout << "111" << endl;
-		if (visited[ffirst][ssecond - w1_len][ssecond]) {
+		if (visited[ffirst+1][ssecond+1][ssecond + w1_len+1]) {
 		return;
 	}
-
-		
-
 
 		if (IsMatch) {
 			return;
@@ -346,8 +389,8 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 	//boost::dynamic_bitset<> visited(groups.size()*length * length);
 	//visited.resize(groups.size()*length * length);
 	//visited.assign(length, vector<vector<bool>>(length, vector<bool>(length, false)));
-	visited.resize(groups.size());
-	for (int i = 0; i < groups.size(); i++) {
+	visited.resize(referCount+1);
+	for (int i = 0; i < referCount+1; i++) {
 		visited[i].resize(w.length());
 		for (int j = 0; j < w.length(); j++) {
 			visited[i][j].resize(w.length());

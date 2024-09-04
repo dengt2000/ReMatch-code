@@ -1,5 +1,6 @@
 #include "Regex.h"
 #include "Parser.h"
+#include "Type.h"
 #include <queue>
 shared_ptr<Regex> Regex::blank (new class::Blank());
 void Regex::setIsPrefix(bool b)
@@ -189,6 +190,11 @@ string LookAround::toString()
 	return "[LookAround]";
 }
 
+string BackRefer::toString()
+{
+	return "[backrefer]";
+}
+
 
 shared_ptr<Regex> Suffix::copy()
 {
@@ -198,6 +204,11 @@ shared_ptr<Regex> Suffix::copy()
 shared_ptr<Regex> Blank::copy()
 {
 	return make_shared<Blank>();
+}
+
+shared_ptr<Regex> BackRefer::copy()
+{
+	return make_shared<BackRefer>();
 }
 
 shared_ptr<Regex> SpecialChars::copy()
@@ -237,12 +248,13 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 	if (isGroup)
 	{
 		//cout << "isGroup  ";
-		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::GroupStart, start, nullptr);
-		new_start->referNo = 0;
 		shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::GroupEnd);
 		new_out->referNo = 0;
-		patch1(out1, new_out);
-		patch2(out2, new_out);
+		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::GroupStart, new_out, nullptr);
+		new_start->referNo = 0;
+		shared_ptr<NFA_state> group_match_state = make_shared<NFA_state>(Type::MatchState);
+		patch1(out1, group_match_state);
+		patch2(out2, group_match_state);
 		this->oldout1 = out1;
 		this->oldout2 = out2;
 		this->start = new_start;
@@ -251,14 +263,10 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 	}
 	else if (isReference)
 	{
-		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::ReferStart, start, nullptr);
 		shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::ReferEnd);
+		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::ReferStart, new_out, nullptr);
 		new_start->referNo = referNo + 1;
 		new_out->referNo = referNo + 1;
-		this->oldout1 = out1;
-		this->oldout2 = out2;
-		patch1(out1, new_out);
-		patch2(out2, new_out);
 		this->start = new_start;
 		this->out1 = list1(new_out);
 		this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();

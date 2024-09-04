@@ -31,10 +31,14 @@ public:
 	clock_t identime=0;
 	clock_t matchtime=0;
 	int groupNum;
+	void init_data_mem();
+	int length;
+	void multi_check_empty_section(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num);//选择性记录
+
 private:
 	void checkmatch(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second);
 	int w1_len;
-	int length;
+	
 
 	template <typename... TArgs>
 	struct Hashfunc {
@@ -89,8 +93,9 @@ private:
 
 	template <typename Tuple, std::size_t I>
 	void assign_tuple_elements(Tuple& key, const std::vector<int>& indices) {
-		std::get<I>(key) = indices[I];
+		
 		if constexpr (I < std::tuple_size_v<Tuple> -3) {
+			std::get<I>(key) = indices[I];
 			assign_tuple_elements<Tuple, I + 1>(key, indices);
 		}
 	}

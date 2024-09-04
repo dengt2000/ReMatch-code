@@ -418,3 +418,9 @@ public:
 	shared_ptr<Regex> copy();
 	string toString();
 };
+
+class BackRefer:public Regex
+{
+	shared_ptr<Regex> copy();
+	string toString();
+};

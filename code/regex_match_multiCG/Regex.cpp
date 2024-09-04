@@ -208,6 +208,17 @@ shared_ptr<Regex> LookAround::copy()
 {
 	return make_shared<LookAround>(r, ahead, positive);
 }
+
+string BackRefer::toString()
+{
+	return "[backrefer]";
+}
+
+shared_ptr<Regex> BackRefer::copy()
+{
+	return make_shared<BackRefer>();
+}
+
 shared_ptr<vector<shared_ptr<NFA_state>>> Regex::list1(shared_ptr<NFA_state> outp)
 {
 	shared_ptr<vector<shared_ptr<NFA_state>>> list(new vector<shared_ptr<NFA_state>>);
@@ -237,12 +248,14 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 	if (isGroup)
 	{
 		//cout << "isGroup  ";
-		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::GroupStart, start, nullptr);
-		new_start->referNo = referNo;
 		shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::GroupEnd);
 		new_out->referNo = referNo;
-		patch1(out1, new_out);
-		patch2(out2, new_out);
+		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::GroupStart, new_out, nullptr);
+		new_start->referNo = referNo;
+		shared_ptr<NFA_state> group_match_state = make_shared<NFA_state>(Type::MatchState);
+		group_match_state->referNo = referNo;
+		patch1(out1, group_match_state);
+		patch2(out2, group_match_state);
 		this->oldout1 = out1;
 		this->oldout2 = out2;
 		this->start = new_start;
@@ -251,14 +264,10 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 	}
 	else if (isReference)
 	{
-		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::ReferStart, start, nullptr);
 		shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::ReferEnd);
+		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::ReferStart, new_out, nullptr);
 		new_start->referNo = referNo;
 		new_out->referNo = referNo;
-		this->oldout1 = out1;
-		this->oldout2 = out2;
-		patch1(out1, new_out);
-		patch2(out2, new_out);
 		this->start = new_start;
 		this->out1 = list1(new_out);
 		this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();

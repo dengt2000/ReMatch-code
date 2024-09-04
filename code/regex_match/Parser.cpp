@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include "Type.h"
 #include <bitset>
 Parser::Parser(string in)
 {
@@ -206,7 +207,10 @@ shared_ptr<Regex> Parser::base()
 			shared_ptr<Regex> r = regex();
 			group.insert(make_pair(tempid, r));
 			if (hasRefer && referID == tempid)
+			{
+				group_start_state=r->start;
 				r->setGroupState(true, false, 0);
+			}
 			r->setGroupID(tempid);
 			eat(')');
 			return r;
@@ -235,7 +239,8 @@ shared_ptr<Regex> Parser::base()
 			if (id > groupID)
 				throw 3;
 			referID = id;
-			shared_ptr<Regex> re = group[id]->copy();
+			// shared_ptr<Regex> re = group[id]->copy();
+			shared_ptr<Regex> re=make_shared<BackRefer>();
 			re->setGroupState(false, true, curreferCount++);
 			//re->referNo = referCount++;
 			//re->setIsReference(true);

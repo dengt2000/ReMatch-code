@@ -7,7 +7,7 @@
 #include <iostream>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
-#include <sys/time.h>
+//#include <sys/time.h>
 #include <unistd.h>
 #define VMPEAK_LINE 17
 using namespace std;
@@ -34,23 +34,25 @@ bool match(string E, string w)
 	clock_t FA_time = clock();
 	total_FA_time=FA_time-begin_time;
 
-	//cout << p->groups[0].size() << endl;
-	//for (int k = 0; k <= referCount; k++)
-	//{
-	//	for (int i = 0; i < p->groups.size(); i++)
-	//	{
-	//		for (int j = i; j < p->groups[i].size(); j++)
-	//			if (p->groups[k][i][j]) {
-	//				cout << k << " " << i << " " << j << endl;
-	//			}
-	//	}
-	//}
-	//for (int i = 0; i < p->position_edges.size(); i++)
-	//{
-	//	for (int j = 0; j < p->position_edges[i].size(); j++)
-	//		for (auto temp : p->position_edges[i][j])
-	//			cout << i-1 << " " << j-1 << " " << temp.first << " " << temp.second << endl;
-	//}
+	// cout<<"debug00 "<<"referEndMaptime "<<p->referEndmap_time<<endl;
+
+	// cout << p->groups[0].size() << endl;
+	// for (int k = 0; k < 1; k++)
+	// {
+	// 	for (int i = 0; i < p->groups[k].size(); i++)
+	// 	{
+	// 		for (int j = i; j < p->groups[k][i].size(); j++)
+	// 			if (p->groups[k][i][j]) {
+	// 				cout << k << " " << i << " " << j << endl;
+	// 			}
+	// 	}
+	// }
+	// for (int i = 0; i < p->position_edges.size(); i++)
+	// {
+	// 	for (int j = 0; j < p->position_edges[i].size(); j++)
+	// 		for (auto temp : p->position_edges[i][j])
+	// 			cout << i-1 << " " << j-1 << " " << temp.first << " " << temp.second << endl;
+	// }
 
 
 
@@ -60,20 +62,6 @@ bool match(string E, string w)
 	C_P->lookarounds=p->lookarounds;
 	C_P->referCount=referCount;
 	C_P->IsMatch = false;
-	if (p->groups.size() <= 1) {
-		clock_t end_time = clock();
-		total_match_time += end_time - FA_time;
-		total_time += end_time - begin_time;
-		//cout << p->groups.size() << endl;
-		//cout << p->position_edges.size() << endl;
-		if (p->position_edges.size() != 0) {
-			//cout << "匹配" << endl;
-			return true;
-		}
-		else
-			return false;
-		//return true;
-	}
 	if (p->section.size() == 0)
 	{
 		clock_t end_time=clock();
@@ -84,6 +72,13 @@ bool match(string E, string w)
 	clock_t idenbegin = clock();
 	//C_P->checkmatch_time = 0;
 	C_P->iden(w,p->section,p->position_edges,p->groups);
+	
+	
+	
+	
+	
+	
+	
 	//cout <<"checkmatch:"<< C_P->checkmatch_time << endl;
 	/*kkmptime += C_P->kmptime;
 	ttemptime += C_P->temptime;*/
@@ -171,38 +166,37 @@ string getString(ifstream  &infile)
 	return w;
 }
 
-inline int GetCurrentPid()
-{
-	    return getpid();
-}
-inline float GetMemoryUsage(int pid)
-{
-	char file_name[64] = { 0 };
-	FILE* fd;
-	char line_buff[512] = { 0 };
-	sprintf(file_name, "/proc/%d/status", pid);
-	fd = fopen(file_name, "r");
-	if (nullptr == fd)
-		return 0;
-	char name[64];
-	int vmrss = 0;
-	for (int i = 0; i < VMPEAK_LINE - 1; i++)
-		fgets(line_buff, sizeof(line_buff), fd);
-	fgets(line_buff, sizeof(line_buff), fd);
-	sscanf(line_buff, "%s %d", name, &vmrss);
-	fclose(fd);
-	// cnvert VmRSS from KB to MB
-	return vmrss / 1024.0;
+ inline int GetCurrentPid()
+ {
+ 	    return getpid();
+ }
+ inline float GetMemoryUsage(int pid)
+ {
+ 	char file_name[64] = { 0 };
+ 	FILE* fd;
+ 	char line_buff[512] = { 0 };
+ 	sprintf(file_name, "/proc/%d/status", pid);
+ 	fd = fopen(file_name, "r");
+ 	if (nullptr == fd)
+ 		return 0;
+ 	char name[64];
+ 	int vmrss = 0;
+ 	for (int i = 0; i < VMPEAK_LINE - 1; i++)
+ 		fgets(line_buff, sizeof(line_buff), fd);
+ 	fgets(line_buff, sizeof(line_buff), fd);
+ 	sscanf(line_buff, "%s %d", name, &vmrss);
+ 	fclose(fd);
+ 	// cnvert VmRSS from KB to MB
+ 	return vmrss / 1024.0;
 }
 int main(int argc,char* argv[])
 {
 	int current_pid = GetCurrentPid();
 	float init_memory=GetMemoryUsage(current_pid);
+	//cout<<CLOCKS_PER_SEC<<endl;
 	cout << match(argv[1], argv[2])<<" ";
 	cout  <<(double)total_FA_time/1000<<" "<<(double)total_match_time/1000<<" "<< (double)total_time/1000 << " ";
 	float memory_usage = GetMemoryUsage(current_pid);
 	std::cout <<memory_usage-init_memory << std::endl;	
 	return 0;
-
-	
 }

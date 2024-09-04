@@ -30,4 +30,5 @@ public:
 	const static int LookAround = 303;
 	const static int MatchState = 257;
 	const static int RevMatchState = 258;
+	const static int MetaCharacter = 304;
 };
