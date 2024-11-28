@@ -33,7 +33,7 @@ public:
 	int groupNum;
 	void init_data_mem();
 	int length;
-	void multi_check_empty_section(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num);//选择性记录
+	void multi_check_empty_section(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num);
 
 private:
 	void checkmatch(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second);
@@ -107,9 +107,9 @@ private:
 	vector<vector<vector<bool>>> res;
 	vector<vector<int>> Pb;
 	vector<vector<vector<int>>> block;
-	int current_group;
-	vector<int> current_PbNum;
-	unordered_map<int, bool> stateVisited;
+	int current_group;//��ǰbackreference��
+	vector<int> current_PbNum;//��ǰPbNumber
+	unordered_map<int, bool> stateVisited;//记录状态
 	size_t hashFunction(const std::vector<int>& dimensions, const std::vector<int>& indices, size_t arraySize);
 	size_t visitedsize;
 	vector<int> dimensions;
@@ -117,7 +117,7 @@ private:
 
 
 	
-	void multi_checkmatch2(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num,int pathNum);//选择性记录
+	void multi_checkmatch2(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num);//选择性记录
 
 
 	vector<vector<int>> left;

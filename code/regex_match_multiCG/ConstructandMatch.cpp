@@ -189,7 +189,7 @@ template <typename... Args>void Construct_Pb<Args...>::multi_iden(string& w, vec
 	}
 
 	init_data_mem();
-	multi_checkmatch2(position_edges, -1, -1, 1, referNo2num, 0);
+	multi_checkmatch2(position_edges, -1, -1, 1, referNo2num);
 
 
 	
@@ -343,7 +343,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 
 			
 			
-			multi_check_empty_section(position_edges, ffirst, ssecond, tthird, referNo2num, pathNum);
+			multi_check_empty_section(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
 				return;
 		}
@@ -376,7 +376,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 				return;
 			// cout << ffirst << " 2  " << ssecond << " " << tthird << endl;
 
-			multi_check_empty_section(position_edges, ffirst, ssecond, tthird, referNo2num, pathNum);
+			multi_check_empty_section(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
 				return;
 		}
@@ -401,7 +401,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			}
 			// cout<<first<<" "<<second<<" "<<third<<endl;
 			// cout << " -1,-1,1 " <<ffirst <<" " << ssecond << " " << tthird << endl;
-			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num, pathNum);
+			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
 				return;
 		}
@@ -538,7 +538,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			// cout<<"catchLength"<<catchLength[referNo]<<endl;
 			// cout << " 11 " <<ffirst<<" " << ssecond << " " << tthird << endl;
 
-			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num, pathNum);
+			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
 				return;
 		}
@@ -564,7 +564,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			// cout<<first<<" "<<second<<" "<<third<<"->";
 			// cout <<" 22 " << ffirst <<" " << ssecond << " " << tthird << endl;
 
-			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num, pathNum);
+			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
 				return;
 		}
