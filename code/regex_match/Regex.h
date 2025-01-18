@@ -18,6 +18,7 @@ public :
 	bool isReference = false;
 	int referNo = -1;
 	shared_ptr<NFA_state> start;
+	shared_ptr<Regex> group_copy;
 	shared_ptr<vector<shared_ptr<NFA_state>>> out1=make_shared<vector<shared_ptr<NFA_state>>>();
 	shared_ptr<vector<shared_ptr<NFA_state>>> out2=make_shared<vector<shared_ptr<NFA_state>>>();
 	shared_ptr<vector<shared_ptr<NFA_state>>> oldout1;
@@ -78,6 +79,12 @@ public:
 		this->thisOne = thisOne;
 		this->thatOne = thatOne;
 		shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, thisOne->start, thatOne->start);
+		if (thisOne->start) {
+			thisOne->start->reverse_out.emplace_back(s);
+		}
+		if (thatOne->start) {
+			thatOne->start->reverse_out.emplace_back(s);
+		}
 		this->start = s;
 		this->out1 = append(thisOne->out1,thatOne->out1);
 		this->out2 = append(thisOne->out2, thatOne->out2);
@@ -128,36 +135,29 @@ public:
 
 		internal = re;
 		this->type = RegexType::PlusRepetition;
-		if (internal->start->c == Type::GroupStart || internal->start->c == Type::ReferStart)
+		if (internal->start->c == Type::GroupStart)
 		{
-			//shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, internal->start->out1, nullptr);
-			//patch1(internal->oldout1, s);
-			//patch2(internal->oldout2, s);
-			this->start = internal->start;
-			this->start->c = Type::Split;
-			for (auto t : *internal->out1)
-			{
-				t->c = Type::Split;
-				t->out1 = this->start;
-				this->start->reverse_out.emplace_back(t);
+			this->start = internal->group_copy->start;
+			shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, this->start, nullptr);
+			if (start) {
+				start->reverse_out.emplace_back(s);
 			}
-			shared_ptr<Regex> new_internal = internal->copy();
-			shared_ptr<NFA_state> group_start = make_shared<NFA_state>(Type::GroupStart, new_internal->start, nullptr);
-			this->start->out2 = group_start;
-			group_start->reverse_out.emplace_back(this->start);
-			shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::GroupEnd);
-			int referno = internal->start->referNo;
-			group_start->referNo = referno;
-			new_out->referNo = referno;
-			patch1(new_internal->out1, new_out);
-			patch2(new_internal->out2, new_out);
-			this->out1 = list1(new_out);
-			this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();
+			patch1(internal->group_copy->out1, s);
+			patch2(internal->group_copy->out2, s);
+			s->out2 = internal->start;
+			if (internal->start)
+				internal->start->reverse_out.emplace_back(s);
+			this->start = s;
+			this->out1 = internal->out1;
+			this->out2 = internal->out2;
 
 		}
 		else
 		{
 			shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, internal->start, nullptr);
+			if (internal->start) {
+				internal->start->reverse_out.emplace_back(s);
+			}
 			patch1(internal->out1, s);
 			patch2(internal->out2, s);
 			this->start = internal->start;
@@ -208,26 +208,14 @@ public:
 	{
 		this->internal = re;
 		this->type = RegexType::QuoraRepetition;
-		if (internal->start->c == Type::GroupStart || internal->start->c == Type::ReferStart)
-		{
-			for (auto t : *internal->out1)
-			{
-				internal->start->out2 = t;
-				t->reverse_out.emplace_back(internal->start);
-			}
-			this->start = internal->start;
-			this->out1 = internal->out1;
-			this->out2 = internal->out2;
-		}
-		else
-		{
 			shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, re->start, nullptr);
+			if (re->start)
+				re->start->reverse_out.emplace_back(s);
 			this->start = s;
 			this->out1 = re->out1;
 			this->out2 = append(re->out2, list1(s));
 			min_len = 0;
 			max_len = re->max_len;
-		}
 	}
 	string toString();
 	shared_ptr<Regex> copy();
@@ -292,6 +280,14 @@ public:
 		case 'd':
 			s = make_shared<NFA_state>(Type::Digit);
 			break;
+		case 'D':
+			s = make_shared<NFA_state>(Type::NonDigit);
+			break;
+		case 'A':
+		case 'Z':
+		case 'z':
+			s = make_shared<NFA_state>(Type::Blank);
+			break;
 		case 'r':
 			s = make_shared<NFA_state>('\r');
 			break;
@@ -351,37 +347,31 @@ public:
 	{
 		this->internal = internal;
 		this->type = RegexType::StarRepetition;
-		if (internal->start->c == Type::GroupStart || internal->start->c == Type::ReferStart)
+		if (internal->start->c == Type::GroupStart)
 		{
-			//shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, internal->start->out1, nullptr);
-			//patch1(internal->oldout1, s);
-			//patch2(internal->oldout2, s);
-			this->start = internal->start;
-			this->start->c = Type::Split;
-			for (auto t : *internal->out1)
-			{
-				t->c = Type::Split;
+			this->start = internal->group_copy->start;
+			shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, this->start, nullptr);
+			if (start) {
+				start->reverse_out.emplace_back(s);
 			}
-			patch1(internal->out1, internal->start);
-			patch2(internal->out2, internal->start);
-			shared_ptr<Regex> new_internal = internal->copy();
-			shared_ptr<NFA_state> group_start = make_shared<NFA_state>(Type::GroupStart, new_internal->start, nullptr);
-			this->start->out2 = group_start;
-			group_start->reverse_out.emplace_back(this->start);
-			shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::GroupEnd);
-			int referno = internal->start->referNo;
-			group_start->referNo = referno;
-			new_out->referNo = referno;
-			patch1(new_internal->out1, new_out);
-			patch2(new_internal->out2, new_out);
-			group_start->out2 = new_out;
-			new_out->reverse_out.emplace_back(group_start);
-			this->out1 = list1(new_out);
-			this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();
+			patch1(internal->group_copy->out1, s);
+			patch2(internal->group_copy->out2, s);
+			shared_ptr<NFA_state> s2 = make_shared<NFA_state>(Type::Split, internal->start, nullptr);
+			if (internal->start)
+				internal->start->reverse_out.emplace_back(s2);
+			s->out2 = s2;
+			s2->reverse_out.emplace_back(s);
+
+			this->start = s;
+			this->out1 = internal->out1;
+			this->out2 = append(internal->out2,list1(s2));
 		}
 		else
 		{
 			shared_ptr<NFA_state> s = make_shared<NFA_state>(Type::Split, internal->start, nullptr);
+			if (internal->start) {
+				internal->start->reverse_out.emplace_back(s);
+			}
 			patch1(internal->out1, s);
 			patch2(internal->out2, s);
 			this->start = s;
@@ -412,9 +402,10 @@ public:
 	bool ahead;
 	bool positive;
 	bool hasRefer;
+	bool hasGroup;
 	string in;
 	shared_ptr<Regex> r;
-	LookAround(shared_ptr<Regex>, bool ahead, bool positive,bool hasRefer=false);
+	LookAround(shared_ptr<Regex>, bool ahead, bool positive,bool hasRefer=false,bool hasGroup=false);
 	shared_ptr<Regex> copy();
 	string toString();
 };

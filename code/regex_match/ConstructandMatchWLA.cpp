@@ -1,0 +1,712 @@
+﻿
+#include"ConstructandMatchWLA.h"
+#include"suffix_array.h"
+#include <string>
+#include <vector>
+#include<map>
+#include <iostream>
+#include<stack>
+#include<tuple>
+using namespace std;
+
+
+
+
+/// <summary>
+/// Construct Pb
+/// </summary>
+/// <param name="subwpair"></param>
+/// <param name="w"></param>
+/// <param name="Pb"></param>
+///int CGs = 0;
+ //表示有几个capturegroup，0表示没有backrefer，1就是1个==我们之前做的那个，2表示有两个capture group；
+//vector<int> groupNo;
+//groupNo[i]表示第i个group是属于\1还是\2.例如对于(a*)(a*).\1\2\2\1,有6个group，那么groupNo[0]=0,groupNo[1]=1,group[2]=0,groupNo[3]=1,groupNo[4]=1,groupNo[5]=0
+void Construct_Pb_WLA::getBRNo(int CGs, vector<int>groupNo) {
+	int num = 0;
+	int it = 0;
+	while (num != CGs && it < groupNo.size()) {
+		if (num == groupNo[it]) {
+			BRNo.emplace_back(it);
+			num++;
+			it++;
+		}
+		else {
+			it++;
+		}
+	}
+}
+void Construct_Pb_WLA::iden(string& w, vector<pair<int, int>>& section, vector<vector<vector<pair<int, int>>>>& position_edges, vector<vector<vector<bool>>>& groups) {
+	long long sum = 0, n;
+	unsigned char* Text;
+	vector<pair<int, int>> temp_s;
+	vector<pair<int, int>> Text_pair;//ÿһ�Ե�λ��
+	vector<vector<bool>> BackNegative_Failed;
+	if(groupInfo&&!groupInfo->ahead&&!groupInfo->positive)
+		BackNegative_Failed.resize(lookaroundNum * 2, vector<bool>(w.length() + 2));
+	for (int i = 0; i < section.size(); i++) {//������к�׺
+		for (int j = section[i].first; j <= section[i].second; j++) {
+			temp_s.emplace_back(make_pair(j, section[i].second));
+		}
+	}
+	string* all_suffix = new string[temp_s.size() + 1];
+	const int temp_s_size = temp_s.size();
+	for (int i = 0; i < temp_s_size; i++) {//���к�׺�ַ���
+		string a;
+		a.assign(w, temp_s[i].first, temp_s[i].second - temp_s[i].first + 1);
+		string b(a.rbegin(), a.rend());
+		all_suffix[i].assign(b);
+	}
+
+
+	for (int i = 0; i < temp_s_size; i++) {
+		sum += all_suffix[i].length() + 1;
+	}
+	n = sum + 1;
+	Text = (unsigned char*)malloc(n * sizeof(unsigned char));
+	sum = 0;
+	for (int i = 0; i < temp_s.size(); i++) {
+		std::copy(all_suffix[i].begin(), all_suffix[i].end(), Text + sum);
+		long long a = sum;
+		sum += all_suffix[i].length() + 1;
+		Text[sum - 1] = 1;//separator
+		//cout<<"jocfejf" << endl;
+		long long b = sum - 2;
+		Text_pair.emplace_back(make_pair(a, b));
+	}
+	Text[n - 1] = 0;
+
+	uint_t* SA = (uint_t*)malloc(n * sizeof(uint_t));
+	int_t* LCP = (int_t*)malloc(n * sizeof(int_t));
+	int_t* DA = (int_t*)malloc(n * sizeof(int_t));
+
+	// sort
+	if(n>=3)
+		gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
+	vector<pair<int, int>> t_Pb;
+	length = w.length();
+	Pb_mark.resize(length * length);
+	visited.resize(referCount + lookaroundNum*2 + 2);
+	for (int i = 0; i < referCount + lookaroundNum*2 + 2; i++) {
+		visited[i].resize(w.length() + 3);
+		for (int j = 0; j < w.length() + 3; j++) {
+			visited[i][j].resize(w.length() + 3);
+		}
+	}
+	w1_len = -1;
+	for (int i = 0; i < groups[0].size(); i++)
+	{
+		if (groups[0][i][i]) {
+			if (groupInfo != nullptr) {
+				if (!groupInfo->ahead && groupInfo->positive) {
+					LaPos = -1;
+				}
+				else if (!groupInfo->ahead && !groupInfo->positive) {
+					this->inLa = true;
+				}
+			}
+			checkEmptyGroup(position_edges, 0, i + w1_len);
+			if (groupInfo != nullptr) {
+				if (!groupInfo->ahead && groupInfo->positive) {
+					if (LaMatch) {
+						LaMatch = false;
+						for (auto p : groupInfo->lookaroundPos[i]) {
+							checkEmptyGroup(position_edges, p.first + 1, p.second);
+						}
+					}
+				}else if (!groupInfo->ahead && !groupInfo->positive) {
+					this->inLa = false;
+					if (LaMatch) {
+						LaMatch = false;
+						for (auto p : groupInfo->lookaroundPos[i]) {
+							BackNegative_Failed[p.first - referCount - 1][p.second] = true;
+						}
+					}
+				}
+			}
+		}
+	}
+	if (IsMatch) {
+		return;
+	}
+
+	for (int i = temp_s.size() + 1; i < n; ++i) {
+
+		int a, b;
+
+		//�ҵ������ı��λ��
+		if (LCP[i] != Text_pair[DA[i]].second - SA[i] + 1) {//ǰ��ͺ�����ȵ���LCP[i]���������ַ������Ȳ���
+
+			if (t_Pb.size()) {
+				/*for (int it = 0; it < t_Pb.size(); it++) {
+					cout << "<" << t_Pb[it].first << "," << t_Pb[it].second << ">";
+				}*/
+				/*cout << endl;*/
+
+				int size = t_Pb.size();
+				for (int j = 0; j < size; j++) {
+
+
+					if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
+						//cout << 0 << " " << t_Pb[0].second << endl;
+						if (groupInfo != nullptr) {
+							if (!groupInfo->ahead && groupInfo->positive) {
+								LaPos = -1;
+							}
+							else if (!groupInfo->ahead && !groupInfo->positive) {
+								this->inLa = true;
+							}
+						}
+						checkmatch(position_edges, 0, t_Pb[0].second);
+						if (groupInfo != nullptr) {
+							if (!groupInfo->ahead && groupInfo->positive) {
+								if (LaMatch) {
+									LaMatch = false;
+									for (auto p : groupInfo->lookaroundPos[t_Pb[0].first]) {
+										checkmatch(position_edges, p.first + 1, p.second);
+									}
+								}
+							}
+							else if (!groupInfo->ahead && !groupInfo->positive) {
+								this->inLa = false;
+								if (LaMatch) {
+									LaMatch = false;
+									for (auto p : groupInfo->lookaroundPos[t_Pb[0].first]) {
+										BackNegative_Failed[p.first - referCount - 1][p.second] = true;
+									}
+								}
+							}
+						}
+					}
+					Pb_mark[t_Pb[0].first * length + t_Pb[0].second] = false;
+					t_Pb.assign(t_Pb.begin() + 1, t_Pb.end());
+					if (IsMatch) {
+						return;
+					}
+				}
+
+				t_Pb.clear();
+
+
+			}
+
+		}
+		a = temp_s[DA[i]].first;
+		b = temp_s[DA[i]].first + Text_pair[DA[i]].second - SA[i];
+		t_Pb.emplace_back(make_pair(a, b));
+		if (t_Pb.size() == 1) {
+			w1_len = b - a;
+		}
+		Pb_mark[a * length + b] = true;
+
+	}
+
+	if (t_Pb.size()) {
+		int size = t_Pb.size();
+		//for (int it = 0; it < t_Pb.size(); it++) {
+		//	cout << "<" << t_Pb[it].first << "," << t_Pb[it].second << ">";
+		//}
+		//cout << endl;
+		for (int j = 0; j < size; j++) {
+			if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
+
+				//cout << 0 << " " << t_Pb[0].second << endl;
+				if (groupInfo != nullptr) {
+					if (!groupInfo->ahead && groupInfo->positive) {
+						LaPos = -1;
+					}
+					else if (!groupInfo->ahead && !groupInfo->positive) {
+						this->inLa = true;
+					}
+				}
+				checkmatch(position_edges, 0, t_Pb[0].second);
+				if (groupInfo != nullptr) {
+					if (!groupInfo->ahead && groupInfo->positive) {
+						if (LaMatch) {
+							LaMatch = false;
+							for (auto p : groupInfo->lookaroundPos[t_Pb[0].first]) {
+								checkmatch(position_edges, p.first + 1, p.second);
+							}
+						}
+					}
+					else if (!groupInfo->ahead && !groupInfo->positive) {
+						this->inLa = false;
+						if (LaMatch) {
+							LaMatch = false;
+							for (auto p : groupInfo->lookaroundPos[t_Pb[0].first]) {
+								BackNegative_Failed[p.first - referCount - 1][p.second] = true;
+							}
+						}
+					}
+				}
+			}
+			Pb_mark[t_Pb[0].first * length + t_Pb[0].second] = false;
+			t_Pb.assign(t_Pb.begin() + 1, t_Pb.end());
+
+			if (IsMatch) {
+				return;
+			}
+		}
+
+		t_Pb.clear();
+	}
+
+	if (IsMatch)
+		return;
+	if (groupInfo) {
+		if (!groupInfo->ahead && !groupInfo->positive) {
+			for (auto p : position_edges[0][0]) {
+				if (p.first > referCount && !BackNegative_Failed[p.first - referCount - 1][p.second]) {
+					checkmatch(position_edges, p.first + 1, p.second);
+				}
+			}
+		}
+	}
+
+}
+
+
+void Construct_Pb_WLA::checkEmptyGroup(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
+	// cout<<"checkEmptyGroup"<<first<<" "<<second<<endl;
+	int len_lim = position_edges[0].size();
+	if (IsMatch) {
+		return;
+	}
+	if (first <= referCount && (second + 1 >= len_lim||second-w1_len+1>=len_lim)) {
+		return;
+	}
+	if (first<=this->referCount&&visited[first + 1][second - w1_len + 1][second + 1]) {
+		return;
+	}
+	//if (position_edges[first + 1][second + 1].empty()) {
+	//	return;
+	//}
+	bool negative_lookback_check = false;
+	if (first > this->referCount) {
+		int lookaroundNo = (first - this->referCount - 1) / 2;
+		shared_ptr<LookAroundState> la = (*this->lookarounds)[lookaroundNo];
+		if (!la->ahead && la->positive) {
+			if ((first - referCount) % 2) {
+				LaPos = second;
+			}
+			else {
+				if (second==-1&&LaPos == -1 && groupInfo)
+				{
+					LaMatch = true;
+					return;
+				}
+				else if (second == -1) {
+					second = LaPos;
+					LaPos = -1;
+				}
+			}
+		}
+		if (!la->ahead && !la->positive) {
+			if ((first - referCount) % 2) {
+				this->inLa = true;
+				negative_lookback_check = true;
+			}
+			else if (second == -1) {
+				LaMatch = true;
+				return;
+			}
+		}
+	}
+	if (LaMatch) {
+		return;
+	}
+	// cout<<"visited"<<first+1<<" "<<second - w1_len+1<<" "<<second+1<<endl;
+	if(first<=referCount&&!inLa)
+		visited[first + 1][second - w1_len + 1][second + 1] = true;
+	auto& edges = position_edges[first + 1][second + 1];
+	for (auto it = edges.begin(); it != edges.end(); ++it) {
+		int ffirst = it->first;
+		int ssecond = it->second;
+		// cout<<"nextcheck"<<ffirst<<" "<<ssecond<<endl;
+		if (ffirst <= referCount && ssecond + w1_len >= length) {
+			continue;
+		}
+		if (ffirst == -1 && ssecond == -1) {
+			IsMatch = true;
+			return;
+		}
+		// cout<<"visited[ffirst+1][ssecond - w1_len+1][ssecond+1]"<<endl;
+		// cout<<"visited"<<ffirst+1<<" "<<ssecond +1<<" "<<ssecond+w1_len+1<<endl;
+		if (ffirst <= referCount && visited[ffirst + 1][ssecond + 1][ssecond + w1_len + 1]) {
+			return;
+		}
+		if (IsMatch) {
+			return;
+		}
+		if (ffirst > referCount||ffirst==-1) {
+			checkEmptyGroup(position_edges, ffirst, ssecond);
+		}
+		else {
+			// cout<<"checkEmptyGroup"<<ffirst<<" "<<ssecond + w1_len<<endl;
+			checkEmptyGroup(position_edges, ffirst, ssecond + w1_len);
+		}
+	}
+	if (first > this->referCount) {
+		int lookaroundNo = (first - this->referCount - 1) / 2;
+		shared_ptr<LookAroundState> la = (*this->lookarounds)[lookaroundNo];
+		if (!la->ahead && la->positive) {
+		}
+		if (!la->ahead && !la->positive) {
+			if ((first - referCount) % 2) {
+				inLa = false;
+				if (LaMatch) {
+					LaMatch = false;
+					return;
+				}
+				else {
+					checkEmptyGroup(position_edges, first + 1, second);
+				}
+			}
+		}
+	}
+}
+void Construct_Pb_WLA::checkmatch(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
+	int len_lim = position_edges[0].size();
+
+	if (IsMatch) {
+		return;
+	}
+
+	if (first <= referCount && second + 1 >= len_lim) {
+
+		return;
+	}
+	bool negative_lookback_check = false;
+	if (first > this->referCount) {
+		int lookaroundNo = (first - this->referCount - 1) / 2;
+		shared_ptr<LookAroundState> la = (*this->lookarounds)[lookaroundNo];
+		if (!la->ahead && la->positive) {
+			if ((first - referCount) % 2) {
+				LaPos = second;
+			}
+			else  {
+				if (second==-1&&LaPos == -1 && groupInfo)
+				{
+					LaMatch = true;
+					return;
+				}
+				else if (second == -1) {
+						second = LaPos;
+						LaPos = -1;
+				}
+			}
+		}else if (!la->ahead && !la->positive) {
+			if ((first-referCount)%2) {
+				this->inLa = true;
+				negative_lookback_check = true;
+			}
+			else if (second == -1) {
+				LaMatch = true;
+				return;
+			}
+		}
+	}
+	if (LaMatch) {
+		return;
+	}
+	if (first<=referCount&&visited[first + 1][second - w1_len + 1][second + 1]) {
+		return;
+	}
+
+	//if (position_edges[first + 1][second + 1].empty()) {
+	//	return;
+	//}
+
+	if(first<=this->referCount&&!inLa)
+		visited[first + 1][second - w1_len + 1][second + 1] = true;
+
+	//int s_w1_diff = w1[0].second - w1[0].first;
+	//cout << first << " " << second << " " << IsMatch << endl;
+
+
+	auto& edges = position_edges[first + 1][second + 1];
+	for (auto it = edges.begin(); it != edges.end(); ++it) {
+
+		int ffirst = it->first;
+		int ssecond = it->second;
+
+		if (ffirst<=referCount&&ssecond + w1_len >= length) {
+			//cout << 111 << endl;
+			continue;
+		}
+		//cout << ffirst << " " << ssecond   << endl;
+		if (ffirst == -1 && ssecond == -1) {
+			//cout << 222 << endl;
+			IsMatch = true;
+			return;
+		}
+		if (ffirst<=referCount&&!Pb_mark[ssecond * length + ssecond + w1_len]) {
+			//cout << "333" <<endl;
+			continue;
+		}
+		//cout << "111" << endl;
+		if (ffirst <= referCount && visited[ffirst + 1][ssecond + 1][ssecond + w1_len + 1]) {
+			return;
+		}
+
+		if (IsMatch) {
+			return;
+		}
+		//cout << w1_len << endl;
+		//cout << ffirst <<" " << ssecond + w1_len << endl;
+		if (ffirst > referCount||ffirst==-1)
+			checkmatch(position_edges, ffirst, ssecond);
+		else
+			checkmatch(position_edges, ffirst, ssecond + w1_len);
+	}
+	if (first > this->referCount) {
+		int lookaroundNo = (first - this->referCount - 1) / 2;
+		shared_ptr<LookAroundState> la = (*this->lookarounds)[lookaroundNo];
+		if (!la->ahead && la->positive) {
+		}
+		if (!la->ahead && !la->positive) {
+			if ((first - referCount) % 2) {
+				inLa = false;
+				if (LaMatch) {
+					LaMatch = false;
+					return;
+				}
+				else {
+					checkmatch(position_edges, first + 1, second);
+				}
+			}
+		}
+	}
+}
+void Construct_Pb_WLA::muti_iden(string& w, vector<pair<int, int>>& section, vector<vector<vector<pair<int, int>>>>& position_edges, vector<vector<vector<bool>>>& groups, int CGs) {
+	int sum = 0, n;
+	unsigned char* Text;
+	vector<pair<int, int>> temp_s;
+	vector<pair<int, int>> Text_pair;//ÿһ�Ե�λ��
+
+	//unordered_map<int, pair<int,int>> subwposition;//Textλ����w��λ�ö�Ӧ
+		/*if (!section.size()) {
+			IsMatch = true;
+			return;
+	}*/
+	for (int i = 0; i < section.size(); i++) {//������к�׺
+		//cout << section[i].first << " " << section[i].second << endl;
+		for (int j = section[i].first; j <= section[i].second; j++) {
+			temp_s.emplace_back(make_pair(j, section[i].second));
+			//cout <<"section " << j << " " << section[i].second << endl;
+		}
+	}
+	string* all_suffix = new string[temp_s.size() + 1];
+	const int temp_s_size = temp_s.size();
+	for (int i = 0; i < temp_s_size; i++) {//���к�׺�ַ���
+		string a;
+		a.assign(w, temp_s[i].first, temp_s[i].second - temp_s[i].first + 1);
+		string b(a.rbegin(), a.rend());
+		all_suffix[i].assign(b);
+	}
+
+
+
+	for (int i = 0; i < temp_s_size; i++) {
+		sum += all_suffix[i].length() + 1;
+	}
+	n = sum + 1;
+	Text = (unsigned char*)malloc(n * sizeof(unsigned char));
+	sum = 0;
+	for (int i = 0; i < temp_s.size(); i++) {
+		/*for (int j = sum; j < sum + all_suffix[i].length(); j++) {
+			subwposition[j].first = i;
+			subwposition[j].second = (temp_s[i].second - temp_s[i].first) - (sum - j);
+		}*/
+		std::copy(all_suffix[i].begin(), all_suffix[i].end(), Text + sum);
+		int a = sum;
+		sum += all_suffix[i].length() + 1;
+		Text[sum - 1] = 1;//separator
+		//cout<<"jocfejf" << endl;
+		int b = sum - 2;
+		Text_pair.emplace_back(make_pair(a, b));
+	}
+	Text[n - 1] = 0;
+	//printf("N = %d\n", n);
+	//////////////////////////////////////////////////
+	//int i, j;
+	//printf("T^{cat} = ");
+	//for (i = 0; i < n - 1; i++) {
+	//	if (Text[i] == 1) printf("$");
+	//	else printf("%c", Text[i]);
+	//}
+	//printf("#\n");
+	/////////////////////////////////////////////////////
+
+	uint_t* SA = (uint_t*)malloc(n * sizeof(uint_t));
+	int_t* LCP = (int_t*)malloc(n * sizeof(int_t));
+	int_t* DA = (int_t*)malloc(n * sizeof(int_t));
+
+	// sort
+	gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
+	//checkmatch_time = 0;
+	vector<pair<int, int>> t_Pb;
+	length = w.length();
+	Pb_mark.resize(length * length);
+	visited.resize(referCount + 1);
+	for (int i = 0; i < referCount + 1; i++) {
+		visited[i].resize(w.length());
+		for (int j = 0; j < w.length(); j++) {
+			visited[i][j].resize(w.length());
+		}
+	}
+	for (int i = temp_s.size() + 1; i < n; ++i) {
+
+		//cout << temp_s.size() + 1;
+		int a, b;
+
+		//�ҵ������ı��λ��
+		if (LCP[i] != Text_pair[DA[i]].second - SA[i] + 1) {//ǰ��ͺ�����ȵ���LCP[i]���������ַ������Ȳ���
+
+			if (t_Pb.size()) {
+				for (int j = 0; j < t_Pb.size(); j++) {
+
+					if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
+						checkmatch(position_edges, 0, t_Pb[0].second);
+					}
+					//
+
+
+					//clock_t end = clock();
+					//checkmatch_time += end - begin;
+					Pb_mark[t_Pb[0].first * length + t_Pb[0].second] = false;
+					t_Pb.assign(t_Pb.begin() + 1, t_Pb.end());
+
+					if (IsMatch) {
+						//cout << 111 << endl;
+						return;
+					}
+				}
+
+				t_Pb.clear();
+
+			}
+
+		}
+		a = temp_s[DA[i]].first;
+		b = temp_s[DA[i]].first + Text_pair[DA[i]].second - SA[i];
+		t_Pb.emplace_back(make_pair(a, b));
+		if (t_Pb.size() == 1) {
+			w1_len = b - a;
+		}
+		Pb_mark[a * length + b] = true;
+		//cout << a << " " << b << endl;
+
+	}
+
+	if (t_Pb.size()) {
+		for (int j = 0; j < t_Pb.size(); j++) {
+			if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
+				checkmatch(position_edges, 0, t_Pb[0].second);
+			}			//clock_t end = clock();
+			Pb_mark[t_Pb[0].first * length + t_Pb[0].second] = false;
+			t_Pb.assign(t_Pb.begin() + 1, t_Pb.end());
+
+			if (IsMatch) {
+				return;
+			}
+		}
+		//clock_t begin = clock();
+
+		t_Pb.clear();
+		//for (auto& subVector :Pb_mark) {
+		//	subVector.erase(subVector.begin(), subVector.end());
+		//}
+
+		//Pb_mark.erase(Pb_mark.begin(), Pb_mark.end());
+
+
+	}
+
+	//visited.clear();
+}
+
+
+bool Construct_Pb_WLA::checkahead(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
+	int len_lim = position_edges[0].size();
+	if (second + 1 - w1_len < 0 || position_edges[first + 1][second + 1 - w1_len].empty()) {
+		return false;
+	}
+	if (first > -1)
+	{
+		if (visited[first][second - w1_len][second]) {
+			return res[first][second - w1_len][second];
+		}
+		visited[first][second - w1_len][second] = true;
+	}
+	auto& edges = position_edges[first + 1][second + 1 - w1_len];
+	for (auto it = edges.begin(); it != edges.end(); ++it) {
+
+		int ffirst = it->first;
+		int ssecond = it->second;
+		if (ffirst == -1 && ssecond == -1) {
+			res[first][second - w1_len][second] = true;
+			return true;
+		}
+		if (ssecond - w1_len < 0) {
+			continue;
+		}
+		//cout << ssecond << " " << ssecond + w1_len << endl;
+		if (!Pb_mark[(ssecond - w1_len) * length + ssecond]) {
+			//cout << "111" <<endl;
+			continue;
+		}
+		if (checkahead(position_edges, ffirst, ssecond))
+		{
+			if (first > -1)
+				res[first][second - w1_len][second] = true;
+			return true;
+		}
+	}
+	return false;
+}
+bool Construct_Pb_WLA::checkbehind(vector<vector<vector<pair<int, int>>>>& position_edges, int first, int second) {
+	int len_lim = position_edges[0].size();
+	if (second + 1 >= len_lim || position_edges[first + 1][second + 1].empty()) {
+		return false;
+	}
+	if (first > -1)
+	{
+		if (visited[first][second - w1_len][second]) {
+			return res[first][second - w1_len][second];
+		}
+		visited[first][second - w1_len][second] = true;
+	}
+	auto& edges = position_edges[first + 1][second + 1];
+	for (auto it = edges.begin(); it != edges.end(); ++it) {
+
+		int ffirst = it->first;
+		int ssecond = it->second;
+		if (ssecond + w1_len >= length) {
+			continue;
+		}
+		if (ffirst == -1 && ssecond == -1) {
+			if (first > -1)
+				res[first][second - w1_len][second] = true;
+			return true;
+		}
+		//cout << ssecond << " " << ssecond + w1_len << endl;
+		if (!Pb_mark[ssecond * length + ssecond + w1_len]) {
+			//cout << "111" <<endl;
+			continue;
+		}
+		if (checkbehind(position_edges, ffirst, ssecond + w1_len))
+		{
+			if (first > -1)
+				res[first][second - w1_len][second] = true;
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+
+
+

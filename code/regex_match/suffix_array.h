@@ -1,31 +1,6 @@
 #pragma once
 // vim: noai:ts=2:sw=2
 
-/*
- * Authors: Felipe A. Louza, Simon Gog, Guilherme P. Telles
- * contact: louza@ic.unicamp.br
- * 03/04/2017
- */
-
- /*
-  * This code is a modification of SACA-K algorithm by G. Nong, which can be
-  * retrieved at: http://code.google.com/p/ge-nong/
-  *
-  * Our version of SACA-K, called gSACA-K, maintain the theoretical bounds of the
-  * original algorithm to construct the generalized suffix array.
-  *
-  * Our algorithm gSACA-K can also computes the LCP-array and the Document-array
-  * with no additional costs.
-  *
-  * gsacak(s, SA, NULL, NULL, n) //computes only SA
-  * gsacak(s, SA, LCP,  NULL, n) //computes SA and LCP
-  * gsacak(s, SA, NULL, DA, n)   //computes SA and DA
-  * gsacak(s, SA, LCP,  DA, n)   //computes SA, LCP and DA
-  *
-  */
-
-  /******************************************************************************/
-
 #ifndef GSACAK_H
 #define GSACAK_H
 

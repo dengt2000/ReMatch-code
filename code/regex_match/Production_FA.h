@@ -15,6 +15,7 @@ public:
 	vector<int> inner;
 	vector<pair<int, int>> section; 
 	shared_ptr<NFA_state> matchState;
+	shared_ptr<GroupInfo> groupInfo;
 	Production_FA(string E, string w);
 
 	const static int Normal = 0;

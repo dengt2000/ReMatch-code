@@ -9,15 +9,15 @@ Production_FA::Production_FA(string E, string w) {
 	hasRefer = p->hasRefer;
 	group_start_state=p->group_start_state;
 	lookarounds = p->lookarounds;
-	lookaroundNum=p->lookarounds->size();
+	//lookaroundNum=p->lookarounds->size();
 	shared_ptr<Regex> re = p->re;
 	clist = make_shared<vector<shared_ptr<NFA_state>>>();
 	this->w = w;
 	this->E = E;
-	position_edges.resize(referCount + lookarounds->size() + 2);
+	position_edges.resize(referCount + lookarounds->size()*2 + 2);
 	//check_behind_edges->resize(referCount + 2);
 	//check_ahead_edges->resize(referCount + 2);
-	for (int i = 0; i < referCount + lookarounds->size() + 2; i++)
+	for (int i = 0; i < referCount + lookarounds->size()*2 + 2; i++)
 	{
 		position_edges[i].resize(w.length() + 3);
 	}
@@ -34,6 +34,7 @@ Production_FA::Production_FA(string E, string w) {
 	}
 	re->start->cur_set = make_shared<boost::dynamic_bitset<>>();
 	re->start->cur_set->resize((max(colsize * rawsize, 0)));
+	re->start->cur_set->set(0);
 	re->start->next_set->resize((max(colsize * rawsize, 0)));
 	re->start->referNo = -1;
 	re->start->groupType = 1;
@@ -85,19 +86,21 @@ Production_FA::Production_FA(string E, string w) {
 				case Type::LookAround:
 				{
 					auto la = dynamic_pointer_cast<LookAroundState>(node);
-					auto pair = make_pair(referCount + la->look_aroundno, i);
+					auto pair = make_pair(referCount +1+ la->look_aroundno*2, i);
 					la->start_positions.emplace_back(i);
 					for(int j=node->next_set->find_first();j!=node->next_set->npos;)
 					{
 						int t0 = j / colsize-1;
 						int t1 = j % colsize - 1;
-						if (t0>-1)
+						if (t0>=-1)
 						{
 							//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
 							addEdge(make_pair(t0,t1), pair);
 						}
 						j = node->next_set->find_next(j);
 					}
+
+					break;
 				}
 				case Type::GroupStart:
 				case Type::ReferStart:
@@ -107,7 +110,7 @@ Production_FA::Production_FA(string E, string w) {
 					{
 						int t0 = j / colsize - 1;
 						int t1 = j % colsize - 1;
-						if (t0 > -1)
+						if (t0 >= -1)
 						{
 							//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
 							addEdge(make_pair(t0, t1), pair);
@@ -125,33 +128,10 @@ Production_FA::Production_FA(string E, string w) {
 							}
 						}
 					}
-					/*
-					for (int j = node->next_set->find_first(); j < node->next_set->size(); j = node->next_set->find_next(j))
-					{
-						addEdge(make_pair(node->referNo - 1, j - 1), make_pair(node->referNo, i));
-					}
-					*/
 					node->next_set->reset();
 					node->cur_set->reset();
 					break;
 				}
-				// case Type::GroupEnd:
-				// case Type::ReferEnd:
-				// {
-				// 	for (int j = node->next_set->find_first(); j != node->next_set->npos;)
-				// 	{
-				// 		int t0 = j / colsize - 1;
-				// 		int t1 = j % colsize - 1;
-				// 		if (t1 < min_t[i])
-				// 			min_t[i] = t1;
-				// 		j = node->next_set->find_next(j);
-				// 		//cout << node->referNo << " " << t1 << " " << i<<endl;
-				// 		groups[node->referNo][t1][i] = 1;
-				// 	}
-				// 	node->next_set->reset();
-				// 	node->cur_set->reset();
-				// 	break;
-				// }
 				case Type::MatchState:
 					if (!hasRefer)
 					{
@@ -162,7 +142,7 @@ Production_FA::Production_FA(string E, string w) {
 					{
 						int t0 = j / colsize - 1;
 						int t1 = j % colsize - 1;
-						if (t0>=0)
+						if (t0>=-1)
 						{
 							//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
 							addEdge(make_pair(t0, t1), make_pair(-1, -1));
@@ -192,19 +172,16 @@ Production_FA::Production_FA(string E, string w) {
 		clist = nlist;
 		nlist = t1;
 		nlist->clear();
-		//cout << nlist->size();
-		//auto t2 = cmap;
-		///cmap = nmap;
-		//nmap = t2;
-		//nmap->clear();
-		//cout << clist->size() << "��" << cmap->size()<<endl;
 	}
 	for (auto& la : *lookarounds)
 	{
 		if (!la->ahead)
-			la->refer_bfs(w, min_t, groups, referCount);
+			la->refer_bfs(w, min_t, groups, referCount, group_map, referEndMap, position_edges, group_can_be_empty);
 		else
 			la->refer_reverse_bfs(w, min_t, groups, referCount);
+		if (la->hasGroup) {
+			this->groupInfo = la->groupInfo;
+		}
 	}
 	if (hasRefer){
 	for (int i = 0; i <= w.length(); i++)
@@ -238,6 +215,9 @@ Production_FA::Production_FA(string E, string w) {
 			section.emplace_back(temp);
 		reverse(section.begin(), section.end());
 	}
+	clist->clear();
+	nlist->clear();
+	tlist->clear();
 }
 
 void Production_FA::get_inner(shared_ptr<NFA_state>start)
@@ -248,19 +228,20 @@ void Production_FA::get_inner(shared_ptr<NFA_state>start)
 	{
 		auto s = Queue.front();
 		Queue.pop();
-		if (s->c == Type::GroupEnd || s->c == Type::ReferEnd)
+		if (s->c == Type::GroupEnd || s->c == Type::ReferEnd||s->c==Type::MatchState)
 			inner[s->id] = 1;
 		if (s->c == Type::LookAround)
 		{
 			auto la = dynamic_pointer_cast<LookAroundState>(s);
-			if (la->hasRefer)
+			if (la->hasRefer||la->hasGroup)
 				inner[la->id] = 1;
 		}
 		visited[s->id]++;
 		if (inner[s->id] == 0)
 		{
-			for (auto state : s->reverse_out)
+			for (auto state_w : s->reverse_out)
 			{
+				auto state = state_w.lock();
 				if (visited[state->id] == 0)
 				{
 					Queue.push(state);
@@ -270,8 +251,9 @@ void Production_FA::get_inner(shared_ptr<NFA_state>start)
 		}
 		else
 		{
-			for (auto state : s->reverse_out)
+			for (auto state_w : s->reverse_out)
 			{
+				auto state = state_w.lock();
 				if (inner[state->id] == 0)
 				{
 					inner[state->id] = 1;
@@ -326,34 +308,31 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 		shared_ptr<LookAroundState> la = dynamic_pointer_cast<LookAroundState>(s);
 		//Production_State* t = new Production_State(la,LookAround, i, -1);
 		//curstate->out.push_back(t);
-		if (la->hasRefer)
+		//cout << la->startState->toString()<<endl;
+		if (la->hasRefer||la->hasGroup)
 		{
-			/*
-			if (!la->ahead)
-				la->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
-			else
-			{
-				cur->cur_set->insert(make_pair(referCount+la->look_aroundno, i-1));
-			}
-			*/
-			//la->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
 			*la->next_set |= *cur->cur_set;
 			//s->cur_set->insert(make_pair(referCount + la->look_aroundno, i));
-			s->cur_set->set((referCount + la->look_aroundno + 1) * colsize + i + 1);
+			s->cur_set->set((referCount +1+ la->look_aroundno*2+1 + 1) * colsize + i + 1);
+			s->groupType = 1;
 			if (visited[s->id] == 1)
 			{
 				NFA_statesets->insert(s);
-
 			}
+			s->lock = true;
+			step(s->out1, c, i, s);
+			s->lock = false;
+			s->cur_set->reset((referCount + 1 + la->look_aroundno * 2 + 1 + 1) * colsize + i + 1);
+			return;
 		}
 		else if (!la->match(w, i))
 			return;
 		s->groupType = 1;
 		s->lock = true;
-		step(s->out1, c, i, s);
+		step(s->out1, c, i, cur);
 		s->lock = false;
 		//s->cur_set->erase(make_pair(referCount + la->look_aroundno, i));
-		s->cur_set->reset((referCount + la->look_aroundno+1)*colsize+i+1);
+		//s->cur_set->reset((referCount + la->look_aroundno+1)*colsize+i+1);
 		return;
 	}
 	case Type::Split:
@@ -371,9 +350,9 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 		bool meta = false;
 		if (i > 0 && i < w.length())
 		{
-			if (isalnum(w[i - 1]) && isalnum(w[i]))
+			if ((isalnum(w[i - 1])||w[i-1]=='_') && (isalnum(w[i])||w[i]=='_'))
 				return;
-			if (!isalnum(w[i - 1]) && !isalnum(w[i]))
+			if (!(isalnum(w[i - 1]) || w[i - 1] == '_') && !(isalnum(w[i]) || w[i] == '_'))
 				return;
 		}
 		s->lock = true;
@@ -393,23 +372,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 	case Type::ReferStart:
 	case Type::GroupStart:
 	{
-		//cout << "groupStart";
-		// if (cur->groupType == 0)
-		// {
-		// 	if (cur->referNo != s->referNo)
-		// 		return;
-		// 	cur->cur_set->set((s->referNo + 1) * colsize + i + 1);
-		// 	//(* cur->cur_set)[i+1] = 1;
-		// 	//groupStarts[s->referNo]->insert(i);
-		// 	s->lock = true;
-		// 	step(s->out1, c, i, cur);
-		// 	step(s->out2, c, i, cur);
-		// 	//cur->cur_set->erase(make_pair(s->referNo, i));
-		// 	cur->cur_set->reset((s->referNo + 1) * colsize + i + 1);
-		// 	//(*cur->cur_set)[i+1] = 0;
-		// 	s->lock = false;
-		// 	return;
-		// }
 		if (cur->groupType == 1)
 		{
 			*s->next_set |= *cur->cur_set;
@@ -430,20 +392,6 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 	case Type::ReferEnd:
 	case Type::GroupEnd:
 	{
-		// if (cur->groupType == 1)
-		// {
-		// 	cur->cur_set->set((s->referNo+1)*colsize+i);
-		// 	s->lock = true;
-		// 	step(s->out1, c, i, cur);
-		// 	cur->cur_set->reset((s->referNo + 1)* colsize + i);
-		// 	s->lock = false;
-		// 	return;
-		// }
-		// else if (cur->groupType == 0)
-		// {
-		// 	*s->next_set |= *cur->cur_set;
-		// 	s->cur_set->set((s->referNo + 1)* colsize + i);
-		// 	NFA_statesets->insert(s);
 		s->groupType = 1;
 		s->cur_set->set((s->referNo + 1)* colsize + i);
 		s->lock = true;
@@ -457,10 +405,14 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i,
 	default:
 		break;
 	}
-	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
+	if (i == w.length())
+		return;
+	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n' && i != w.length())
 		|| (s->c == Type::SingleLetter && (isspace(c)))
 		|| (s->c == Type::NonSingleLetter && !(isspace(c)))
 		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+		|| (s->c == Type::NonDigit && !isdigit(c))
+		||((s->c == Type::NonWord && !(isalnum(c) || c == '_')))
 		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 	{
 		if (hasRefer)
@@ -585,19 +537,17 @@ void Production_FA::simple_step(shared_ptr<NFA_state> s, char c,int i,shared_ptr
 		case 257:
 		{
 				*s->next_set |= *cur->cur_set;
-			if (visited[s->id]==1){
 				NFA_statesets->insert(s);
-			}
 				return;
 		}
 		case Type::LookAround:
 		{
 			shared_ptr<LookAroundState> la = dynamic_pointer_cast<LookAroundState>(s);
-			if (la->hasRefer || !la->match(w, i)){
+			if ((la->hasRefer||la->hasGroup) || !la->match(w, i)){
 				return;
 			}
 			s->lock = true;
-			simple_step(s->out1, c, i, s);
+			simple_step(s->out1, c, i, cur);
 			s->lock = false;
 			return;
 		}
@@ -614,9 +564,9 @@ void Production_FA::simple_step(shared_ptr<NFA_state> s, char c,int i,shared_ptr
 			bool meta = false;
 			if (i > 0 && i < w.length())
 			{
-				if (isalnum(w[i - 1]) && isalnum(w[i]))
+				if ((isalnum(w[i - 1]) || w[i - 1] == '_') && (isalnum(w[i]) || w[i] == '_'))
 					return;
-				if (!isalnum(w[i - 1]) && !isalnum(w[i]))
+				if (!(isalnum(w[i - 1]) || w[i - 1] == '_') && !(isalnum(w[i]) || w[i] == '_'))
 					return;
 			}
 			s->lock = true;
@@ -637,10 +587,14 @@ void Production_FA::simple_step(shared_ptr<NFA_state> s, char c,int i,shared_ptr
 		default:
 			break;
 		}
-		if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
+		if (i == w.length())
+			return;
+		if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n' && i != w.length())
 			|| (s->c == Type::SingleLetter && (isspace(c)))
 			|| (s->c == Type::NonSingleLetter && !(isspace(c)))
 			|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+			|| (s->c == Type::NonDigit && !isdigit(c))
+			|| (s->c==Type::NonWord&&!(isalnum(c)||c=='_'))
 			|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 		{
 			*s->next_set |= *cur->cur_set;

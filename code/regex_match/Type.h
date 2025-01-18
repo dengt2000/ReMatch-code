@@ -31,4 +31,5 @@ public:
 	inline const static int MatchState = 257;
 	inline const static int RevMatchState = 258;
 	inline const static int MetaCharacter = 304;
+	inline const static int NonDigit = 305;
 };

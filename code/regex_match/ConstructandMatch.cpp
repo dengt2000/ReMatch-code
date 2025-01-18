@@ -18,7 +18,10 @@ using namespace std;
 /// <param name="subwpair"></param>
 /// <param name="w"></param>
 /// <param name="Pb"></param>
-
+///int CGs = 0;
+ //表示有几个capturegroup，0表示没有backrefer，1就是1个==我们之前做的那个，2表示有两个capture group；
+//vector<int> groupNo;
+//groupNo[i]表示第i个group是属于\1还是\2.例如对于(a*)(a*).\1\2\2\1,有6个group，那么groupNo[0]=0,groupNo[1]=1,group[2]=0,groupNo[3]=1,groupNo[4]=1,groupNo[5]=0
 void Construct_Pb::getBRNo(int CGs, vector<int>groupNo) {
 	int num = 0;
 	int it = 0;
@@ -34,19 +37,19 @@ void Construct_Pb::getBRNo(int CGs, vector<int>groupNo) {
 	}
 }
 void Construct_Pb::iden( string& w, vector<pair<int, int>>& section, vector<vector<vector<pair<int, int>>>>& position_edges, vector<vector<vector<bool>>>& groups) {
-	int sum = 0, n;
+	long long sum = 0, n;
 	unsigned char* Text;
 	vector<pair<int, int>> temp_s;
-	vector<pair<int, int>> Text_pair;
+	vector<pair<int, int>> Text_pair;//ÿһ�Ե�λ��
 
-	for (int i = 0; i < section.size(); i++) {
+	for (int i = 0; i < section.size(); i++) {//������к�׺
 		for (int j = section[i].first; j <= section[i].second; j++) {
 			temp_s.emplace_back(make_pair(j, section[i].second));
 		}
 	}
 	string* all_suffix = new string[temp_s.size() + 1];
 	const int temp_s_size = temp_s.size();
-	for (int i = 0; i < temp_s_size; i++) {
+	for (int i = 0; i < temp_s_size; i++) {//���к�׺�ַ���
 		string a;
 		a.assign(w, temp_s[i].first, temp_s[i].second - temp_s[i].first + 1);
 		string b(a.rbegin(), a.rend());
@@ -63,51 +66,72 @@ void Construct_Pb::iden( string& w, vector<pair<int, int>>& section, vector<vect
 	sum = 0;
 	for (int i = 0; i < temp_s.size(); i++) {
 		std::copy(all_suffix[i].begin(), all_suffix[i].end(), Text + sum);
-		int a = sum;
+		long long a = sum;
 		sum += all_suffix[i].length() + 1;
 		Text[sum - 1] = 1;//separator
 		//cout<<"jocfejf" << endl;
-		int b = sum - 2;
+		long long b = sum - 2;
 		Text_pair.emplace_back(make_pair(a, b));
 	}
 	Text[n - 1] = 0;
-	
+	//printf("N = %d\n", n);
+	////////////////////////////////////////////////
+	/*int i, j;*/
+	/*printf("T^{cat} = ");
+	for (i = 0; i < n - 1; i++) {
+		if (Text[i] == 1) printf("$");
+		else printf("%c", Text[i]);
+	}
+	printf("#\n");*/
+	///////////////////////////////////////////////////
 
 	uint_t* SA = (uint_t*)malloc(n * sizeof(uint_t));
 	int_t* LCP = (int_t*)malloc(n * sizeof(int_t));
 	int_t* DA = (int_t*)malloc(n * sizeof(int_t));
 
 	// sort
-	gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
-	
+	if(n>=3)
+		gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
+	//checkmatch_time = 0;
 	vector<pair<int, int>> t_Pb;
 	length = w.length();
 	Pb_mark.resize(length * length);
-	visited.resize(referCount+2);
-	for (int i = 0; i < referCount+2; i++) {
+	visited.resize(referCount+lookaroundNum+2);
+	for (int i = 0; i < referCount + lookaroundNum+ 2; i++) {
 		visited[i].resize(w.length()+2);
 		for (int j = 0; j < w.length()+2; j++) {
 			visited[i][j].resize(w.length()+2);
 		}
 	}
 	w1_len = -1;
-	checkEmptyGroup(position_edges, 0, -1);
+	for (int i = 0; i < groups[0].size(); i++)
+	{
+		if (groups[0][i][i]) {
+			checkEmptyGroup(position_edges, 0, i + w1_len);
+		}
+	}
+	if (IsMatch) {
+		return;
+	}
 
 	for (int i = temp_s.size() + 1; i < n; ++i) {
 
 		int a, b;
 
-		
-		if (LCP[i] != Text_pair[DA[i]].second - SA[i] + 1) {
+		//�ҵ������ı��λ��
+		if (LCP[i] != Text_pair[DA[i]].second - SA[i] + 1) {//ǰ��ͺ�����ȵ���LCP[i]���������ַ������Ȳ���
 
 			if (t_Pb.size()) {
-			
+				/*for (int it = 0; it < t_Pb.size(); it++) {
+					cout << "<" << t_Pb[it].first << "," << t_Pb[it].second << ">";
+				}*/
+				/*cout << endl;*/
 
 				int size = t_Pb.size();
 				for (int j = 0; j < size; j++) {
 
 					
-					if (groups[0][t_Pb[0].first][t_Pb[0].second+1]) {
+					if (groups[0][t_Pb[0].first][t_Pb[0].second+1]) {//在groups0中
 						//cout << 0 << " " << t_Pb[0].second << endl;
 						checkmatch(position_edges, 0, t_Pb[0].second);
 					}
@@ -141,7 +165,7 @@ void Construct_Pb::iden( string& w, vector<pair<int, int>>& section, vector<vect
 		//}
 		//cout << endl;
 		for (int j = 0; j <size; j++) {
-			if (groups[0][t_Pb[0].first][t_Pb[0].second+1]) {
+			if (groups[0][t_Pb[0].first][t_Pb[0].second+1]) {//在groups0中
 				
 				//cout << 0 << " " << t_Pb[0].second << endl;
 				checkmatch(position_edges, 0, t_Pb[0].second);
@@ -190,6 +214,8 @@ void Construct_Pb::checkEmptyGroup(vector<vector<vector<pair<int, int>>>>& posit
 			IsMatch = true;
 			return;
 		}
+		// cout<<"visited[ffirst+1][ssecond - w1_len+1][ssecond+1]"<<endl;
+		// cout<<"visited"<<ffirst+1<<" "<<ssecond +1<<" "<<ssecond+w1_len+1<<endl;
 		if (visited[ffirst+1][ssecond +1][ssecond+w1_len+1]) {
 			return;
 		}
@@ -223,6 +249,8 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 
 	visited[first+1][second - w1_len+1][second+1] = true;
 
+	//int s_w1_diff = w1[0].second - w1[0].first;
+	//cout << first << " " << second << " " << IsMatch << endl;
 
 
 
@@ -231,17 +259,23 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 
 		int ffirst = it->first;
 		int ssecond = it->second;
+		//cout << ffirst << " " << ssecond << endl;
 
 		if (ssecond + w1_len >= length) {
+			//cout << 111 << endl;
 			continue;
 		}
+		//cout << ffirst << " " << ssecond   << endl;
 		if (ffirst == -1 && ssecond == -1) {
+			//cout << 222 << endl;
 			IsMatch = true;
 			return;
 		}
 		if (!Pb_mark[ssecond * length + ssecond + w1_len]) {
+			//cout << "333" <<endl;
 			continue;
 		}
+		//cout << "111" << endl;
 		if (visited[ffirst+1][ssecond+1][ssecond + w1_len+1]) {
 		return;
 	}
@@ -249,6 +283,8 @@ void Construct_Pb::checkmatch(vector<vector<vector<pair<int, int>>>>& position_e
 		if (IsMatch) {
 			return;
 		}
+		//cout << w1_len << endl;
+		//cout << ffirst <<" " << ssecond + w1_len << endl;
 
 		checkmatch(position_edges, ffirst, ssecond + w1_len);
 	}
@@ -257,8 +293,14 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 	int sum = 0, n;
 	unsigned char* Text;
 	vector<pair<int, int>> temp_s;
-	vector<pair<int, int>> Text_pair;
-	for (int i = 0; i < section.size(); i++) {
+	vector<pair<int, int>> Text_pair;//ÿһ�Ե�λ��
+
+	//unordered_map<int, pair<int,int>> subwposition;//Textλ����w��λ�ö�Ӧ
+		/*if (!section.size()) {
+			IsMatch = true;
+			return;
+	}*/
+	for (int i = 0; i < section.size(); i++) {//������к�׺
 		//cout << section[i].first << " " << section[i].second << endl;
 		for (int j = section[i].first; j <= section[i].second; j++) {
 			temp_s.emplace_back(make_pair(j, section[i].second));
@@ -267,7 +309,7 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 	}
 	string* all_suffix = new string[temp_s.size() + 1];
 	const int temp_s_size = temp_s.size();
-	for (int i = 0; i < temp_s_size; i++) {
+	for (int i = 0; i < temp_s_size; i++) {//���к�׺�ַ���
 		string a;
 		a.assign(w, temp_s[i].first, temp_s[i].second - temp_s[i].first + 1);
 		string b(a.rbegin(), a.rend());
@@ -283,7 +325,10 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 	Text = (unsigned char*)malloc(n * sizeof(unsigned char));
 	sum = 0;
 	for (int i = 0; i < temp_s.size(); i++) {
-		
+		/*for (int j = sum; j < sum + all_suffix[i].length(); j++) {
+			subwposition[j].first = i;
+			subwposition[j].second = (temp_s[i].second - temp_s[i].first) - (sum - j);
+		}*/
 		std::copy(all_suffix[i].begin(), all_suffix[i].end(), Text + sum);
 		int a = sum;
 		sum += all_suffix[i].length() + 1;
@@ -293,16 +338,6 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 		Text_pair.emplace_back(make_pair(a, b));
 	}
 	Text[n - 1] = 0;
-	//printf("N = %d\n", n);
-	//////////////////////////////////////////////////
-	//int i, j;
-	//printf("T^{cat} = ");
-	//for (i = 0; i < n - 1; i++) {
-	//	if (Text[i] == 1) printf("$");
-	//	else printf("%c", Text[i]);
-	//}
-	//printf("#\n");
-	/////////////////////////////////////////////////////
 
 	uint_t* SA = (uint_t*)malloc(n * sizeof(uint_t));
 	int_t* LCP = (int_t*)malloc(n * sizeof(int_t));
@@ -310,35 +345,10 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 
 	// sort
 	gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
-	////////////////////////////////////////////////////////
-	//printf("i\tSA\tDA\tLCP\tBWT\tsuffixes\n");
-	//for (int i = 0; i < n; ++i) {
-	//	char j = (SA[i]) ? Text[SA[i] - 1] : '#';
-	//	if (j == 1) j = '$';
-	//	printf("%d\t%d\t%d\t%d\t%c\t", i, SA[i], DA[i], LCP[i], j);
-	//	for (j = SA[i]; j < n; ++j) {
-	//		if (Text[j] == 1) printf("$");
-	//		else printf("%c", Text[j]);
-	//	}
-	//	printf("#\n");
-	//}
-	////////////////////////////////////////////////////////
 	//checkmatch_time = 0;
 	vector<pair<int, int>> t_Pb;
 	length = w.length();
-	//vector<vector<bool>> Pb_mark;
-	//Pb_mark.resize(length);
-	//for (int i = 0; i < length; i++) {
-	//	Pb_mark[i].resize(length);
-	//}
-	//unordered_map<pair<int, int>, bool, Hashfunc, Equalfunc> Pb_mark;
-	//visited.clear();
-	//vector<vector<bool>> Pb_mark(length, vector<bool>(length, false));
-	//vector<bool> Pb_mark(length*length,false);
 	Pb_mark.resize(length * length);
-	//boost::dynamic_bitset<> visited(groups.size()*length * length);
-	//visited.resize(groups.size()*length * length);
-	//visited.assign(length, vector<vector<bool>>(length, vector<bool>(length, false)));
 	visited.resize(referCount+1);
 	for (int i = 0; i < referCount+1; i++) {
 		visited[i].resize(w.length());
@@ -348,35 +358,20 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 	}
 	for (int i = temp_s.size() + 1; i < n; ++i) {
 
-		
+		//cout << temp_s.size() + 1;
 		int a, b;
 
-		
+		//�ҵ������ı��λ��
 		if (LCP[i] != Text_pair[DA[i]].second - SA[i] + 1) {//ǰ��ͺ�����ȵ���LCP[i]���������ַ������Ȳ���
 
 			if (t_Pb.size()) {
-				//for (int i = 0; i < t_Pb.size(); i++) {
-				//	cout <<"<" << t_Pb[i].first << " " << t_Pb[i].second << ">";
-				//}
-				//cout << endl;
-				//Pb.emplace_back(t_Pb);
-				//visited.clear();
 				for (int j = 0; j < t_Pb.size(); j++) {
 
 
-					/*for (int it = 0; it < t_Pb.size(); it++) {
-						cout <<"<" << t_Pb[it].first << "," << t_Pb[it].second << ">";
-					}*/
-					//cout << endl;
-					/*cout << "size" << t_Pb.size() << endl;
-
-					cout << "j"<<j << endl;*/
-					//visited.clear();
-					//clock_t begin = clock();
 					if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
 						checkmatch(position_edges, 0, t_Pb[0].second);
 					}
-					//
+					
 
 
 					//clock_t end = clock();
@@ -418,15 +413,6 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 		//Pb.emplace_back(t_Pb);
 		//visited.clear();
 		for (int j = 0; j < t_Pb.size(); j++) {
-			/*for (int i = 0; i < t_Pb.size(); i++) {
-				cout << t_Pb[i].first << " " << t_Pb[i].second << endl;
-			}*/
-			//visited.clear();
-
-
-			//cout << "new" << endl;
-
-			/*clock_t begin = clock();*/
 			if (groups[0][t_Pb[0].first][t_Pb[0].second + 1]) {//在groups0中
 				checkmatch(position_edges, 0, t_Pb[0].second);
 			}			//clock_t end = clock();
@@ -452,10 +438,6 @@ void Construct_Pb::muti_iden(string& w, vector<pair<int, int>>& section, vector<
 
 	//visited.clear();
 }
-
-
-
-
 
 bool Construct_Pb::checkahead(vector<vector<vector<pair<int, int>>>>& position_edges,int first, int second) {
 	int len_lim = position_edges[0].size();

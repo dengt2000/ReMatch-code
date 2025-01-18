@@ -13,7 +13,7 @@ extern int referCount;
 using namespace std;
 
 #define colsize (wlen+3)
-#define rawsize (referCount+2+lookaroundNum)
+#define rawsize (referCount+2+lookaroundNum*2)
 
 struct pair_comp {
 	bool operator() (const std::pair<int, int>& A, const std::pair<int, int>& B)const {
@@ -31,7 +31,7 @@ struct pair_comp {
 struct Hashfunc {
 	size_t operator() (const pair<int, int>& key) const {
 		auto seed = hash<int>()(key.first);
-		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å»ï¿½
+		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//¹þÏ£º¯Êý¿ÉÒÔÓÅ»¯
 	}
 };
 struct Equalfunc {
@@ -40,7 +40,7 @@ struct Equalfunc {
 	}
 };
 
-
+//±íÊ¾NFAµÄ×´Ì¬
 class Pattern;
 class NFA_state {
 public:
@@ -51,6 +51,7 @@ public:
 	NFA_state(char c);
 	NFA_state(int c, shared_ptr<NFA_state> out1, shared_ptr<NFA_state> out2);
 	NFA_state(char c, shared_ptr<NFA_state> out1, shared_ptr<NFA_state> out2);
+	//~NFA_state();
 	virtual string toString();
 	bool operator<(const NFA_state& rhs)const { return this->id < rhs.id; }
 	bool operator==(const NFA_state& rhs)const { return this->id == rhs.id; }
@@ -63,7 +64,7 @@ public:
 	int groupType;
 	int groupNo;
 	int c;
-	vector<shared_ptr<NFA_state>> reverse_out;
+	vector<weak_ptr<NFA_state>> reverse_out;
 	shared_ptr<NFA_state> out1;
 	shared_ptr<NFA_state> out2;
 	int group_state = 0;//  0:normal; 1:(; 2:); 
@@ -85,12 +86,26 @@ public:
 	string toString();
 };
 
+struct GroupInfo {
+	vector<vector<pair<int, int>>> lookaroundPos;
+	bool ahead;
+	bool positive;
+	GroupInfo(int raws,  bool ahead, bool positive) :ahead(ahead),  positive(positive){
+		lookaroundPos.resize(raws);
+	}
+};
+
 class LookAroundState :public NFA_state {
 public:
 	bool ahead; //true:lookahead;false:lookback;
 	bool positive; //true:positive;false:negtive;
 	int startNo;
 	bool hasRefer;
+	bool hasGroup;
+	int referNo;
+
+	shared_ptr<GroupInfo> groupInfo;
+	bool group_can_be_empty = false;
 	shared_ptr<NFA_state> startState;
 	shared_ptr<NFA_state> matchState;
 	unordered_map<int, bool> result;
@@ -109,17 +124,17 @@ public:
 
 	void reverse(shared_ptr<NFA_state>& start);
 	bool match(string s, int i);
-	bool reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_state);
+	bool reverse_dfs(string s, int i, shared_ptr<NFA_state> cur_state);
 	bool dfs(string s, int i, shared_ptr<NFA_state>& cur_state);
 
 	//methods for refer conditions
 	void refer_reverse_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount);
-	void refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount);
+	void refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount, unordered_map<int, vector<int>>& group_map, vector<unordered_set<shared_ptr<NFA_state>>>& referEndMap, vector<vector<vector<pair<int, int>>>>& position_edges, bool group_can_be_empty);
 	void step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_state> cur);
 	void reverse_step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_state> cur);
-	void addEdge(pair<int, int> v1, pair<int, int> v2);
+	void addEdge(pair<int, int> v1, pair<int, int> v2, vector<vector<vector<pair<int, int>>>>& position_edges);
 
-	LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer = false);
+	LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer = false,bool hasGroup=false);
 };
 
 class NfaList

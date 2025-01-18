@@ -20,7 +20,7 @@ Parser::Parser(string in)
 	}
 	for (int i=0;i<input.length()-1;i++)
 	{
-		if (input[i] == '\\' &&(input[i+1]>=48&&input[i+1] <= 57))
+		if ((i==0||(i>0&& input[i-1]!='\\')) && input[i] == '\\' && (input[i + 1] > 48 && input[i + 1] <= 57))
 		{
 			int num=0;
 			for (int j = i + 1; input[j] >= 48 && input[j]<=57; j++)
@@ -28,6 +28,10 @@ Parser::Parser(string in)
 			hasRefer = true;
 			referID = num;
 			referCount++;
+		}
+		else if (input[i] == '(' && input[i + 1] == '?' && i + 2 < input.length() &&
+			(input[i + 2] == '=' || input[i + 2] == '!' || input[i + 2] == '<')) {
+			lookaroundNum++;
 		}
 
 
@@ -40,7 +44,9 @@ Parser::Parser(string in)
 	if (!isSuffix)
 		input = input + ".*";
 	*/
+	shared_ptr<Regex> st(new Blank());
 	re = regex();
+	re = make_shared<Sequence>(st, re);
 	matchState = make_shared<NFA_state>(257);
 	stateNo = matchState->id - re->start->id + 1;
 	patch1(re->out1, matchState);
@@ -176,10 +182,12 @@ shared_ptr<Regex> Parser::base()
 					abort();
 				}
 				int start = position;
+				bool group_seted = (group_start_state != nullptr);
 				shared_ptr<Regex> r = regex();
 				int end = position;
 				eat(')');
 				bool hasrefer=false;
+				bool hasgroup = (!group_seted&&group_start_state);
 				int referID = 0;
 				for (int j = start; j <= end - 1; j++)
 				{
@@ -192,12 +200,13 @@ shared_ptr<Regex> Parser::base()
 						referID = num;
 					}
 				}
-				auto lookaround= make_shared<class::LookAround>(r, ahead, positive,hasrefer);
-				if (hasrefer)
+				auto lookaround= make_shared<class::LookAround>(r, ahead, positive,hasrefer,hasgroup);
+				if (hasrefer||hasgroup)
 				{
 						lookarounds->emplace_back(dynamic_pointer_cast<LookAroundState>(lookaround->start));
-						lookaround->start->look_aroundno = lookarounds->size();
+						lookaround->start->look_aroundno = lookarounds->size()-1;
 				}
+				//cout << lookaround->r->start->toString() << endl;
 				return lookaround;
 			}
 		}
@@ -209,6 +218,7 @@ shared_ptr<Regex> Parser::base()
 			if (hasRefer && referID == tempid)
 			{
 				group_start_state=r->start;
+				r->group_copy = r->copy();
 				r->setGroupState(true, false, 0);
 			}
 			r->setGroupID(tempid);
@@ -222,13 +232,23 @@ shared_ptr<Regex> Parser::base()
 			return r;
 		}
 	}
+	case '^':
+	{
+		eat('^');
+		return make_shared<Blank>();
+	}
+	case '$':
+	{
+		eat('$');
+		return make_shared<Blank>();
+	}
 	case '\\':
 	{
 		eat('\\');
 		char esc = next();
 		if (esc > 255 || esc <= 0)
 			throw 1;
-		if (isdigit(esc))
+		if (isdigit(esc)&&esc!='0')
 		{
 			int id=esc-'0';
 			while (more()&&isdigit(peek()))
@@ -277,17 +297,22 @@ shared_ptr<Regex> Parser::multichoice()
 		eat('^');
 	}
 	shared_ptr<MultiChoice> ans(new MultiChoice());
+	if (more() && peek() == ']')
+	{
+		eat(']');
+		ans->orOp(make_shared<MultiChoice>(']', ']'));
+	}
 	while (more() && peek() != ']')
 	{
 		shared_ptr<MultiChoice> single = dynamic_pointer_cast<MultiChoice>(Parser::singlechoice(true));
 		ans->orOp(single);
-		while (peek() == '&')
+		/*while (peek() == '&')
 		{
 			eat('&');
 			eat('&');
 			shared_ptr<MultiChoice> second = dynamic_pointer_cast<MultiChoice>(Parser::andchoice());
 			ans->andOp(second);
-		}
+		}*/
 	}
 	if (negative)
 		ans->reverse();
@@ -308,18 +333,22 @@ shared_ptr<Regex> Parser::singlechoice(bool in)
 	char c1 = next();
 	if (c1 == '\\')
 	{
-		eat('\\');
 		c1 = next();
 		switch (c1)
-		{															case 's':														{
+		{															
+		case 's':														
+		{
 			auto p = make_shared<MultiChoice>(' ', ' ');
 			p->orOp(make_shared<MultiChoice>('\t', '\t'));
-			p->orOp(make_shared<MultiChoice>('\n', '\n'));										return p;
+			p->orOp(make_shared<MultiChoice>('\n', '\n'));										
+			return p;
 		}
-		case 'S':														{
+		case 'S':														
+		{
 			auto p = make_shared<MultiChoice>(' ', ' ');
 			p->orOp(make_shared<MultiChoice>('\t', '\t'));
-			p->orOp(make_shared<MultiChoice>('\n', '\n'));										p->reverse();
+			p->orOp(make_shared<MultiChoice>('\n', '\n'));										
+			p->reverse();
 			return  p;
 		}
 		case 'w':
@@ -330,13 +359,24 @@ shared_ptr<Regex> Parser::singlechoice(bool in)
 			p->orOp(make_shared<MultiChoice>('_', '_'));
 			return p;
 		}
-		case 'W':														{																auto p = make_shared<MultiChoice>('0', '9');
-			p->orOp(make_shared<MultiChoice>('a', 'z'));										p->orOp(make_shared<MultiChoice>('A', 'Z'));										p->reverse();
+		case 'W':														
+		{																
+			auto p = make_shared<MultiChoice>('0', '9');
+			p->orOp(make_shared<MultiChoice>('a', 'z'));
+			p->orOp(make_shared<MultiChoice>('A', 'Z'));
+			p->orOp(make_shared<MultiChoice>('_', '_'));
+			p->reverse();
 			return p;
 		}
 		case 'd':
 		{
 			return make_shared<MultiChoice>('0', '9');
+		}
+		case 'D':
+		{
+			auto p=make_shared<MultiChoice>('0', '9');
+			p->reverse();
+			return p;
 		}
 		default:
 			break;									
@@ -384,7 +424,7 @@ static vector<shared_ptr<NFA_state>> append(vector<shared_ptr<NFA_state>> l1, ve
 
 void Parser::patch2(shared_ptr <vector<shared_ptr<NFA_state>>>& l, shared_ptr<NFA_state> s)
 {
-	for (auto& t : *l)
+	for (auto t : *l)
 	{
 		t->out2 = s;
 		s->reverse_out.emplace_back(t);
@@ -393,7 +433,7 @@ void Parser::patch2(shared_ptr <vector<shared_ptr<NFA_state>>>& l, shared_ptr<NF
 
 void Parser::patch1(shared_ptr<vector<shared_ptr<NFA_state>>>& l, shared_ptr<NFA_state> s)
 {
-	for (auto& t : *l)
+	for (auto t : *l)
 	{
 		t->out1 = s;
 		s->reverse_out.emplace_back(t);
