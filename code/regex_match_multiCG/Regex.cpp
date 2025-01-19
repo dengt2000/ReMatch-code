@@ -125,17 +125,24 @@ string Primitives::toString()
 	string s(1, c);
 	return ("Primitives:"+s);
 }
-LookAround::LookAround(shared_ptr<Regex> re, bool ahead, bool positive,bool hasRefer)
+LookAround::LookAround(shared_ptr<Regex> re, bool ahead, bool positive,bool hasRefer,bool hasGroup)
 {
 	this->type = RegexType::LookAround;
 	this->r = re;
 	this->ahead = ahead;
 	this->positive = positive;
 	this->hasRefer = hasRefer;
+	this->hasGroup = hasGroup;
 	shared_ptr<NFA_state> matchState = make_shared<NFA_state>(Type::MatchState);
 	patch1(re->out1, matchState);
 	patch2(re->out2, matchState);
-	shared_ptr<LookAroundState> la = make_shared<LookAroundState>(ahead, positive, re->start,matchState,hasRefer);
+	shared_ptr<LookAroundState> la = make_shared<LookAroundState>(ahead, positive, re->start,matchState,hasRefer,hasGroup);
+	if (re->start) {
+		re->start->reverse_out.emplace_back(la);
+	}
+	if (matchState) {
+		matchState->reverse_out.emplace_back(la);
+	}
 	this->start = la;
 	this->out1 = list1(la);
 	this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();
@@ -216,7 +223,13 @@ string BackRefer::toString()
 
 shared_ptr<Regex> BackRefer::copy()
 {
-	return make_shared<BackRefer>();
+	shared_ptr<BackRefer> r=make_shared<BackRefer>();
+	shared_ptr<NFA_state> refer_end = make_shared<NFA_state>(Type::ReferEnd);
+	refer_end->referNo = this->start->referNo;
+	r->start = make_shared<NFA_state>(Type::ReferStart,refer_end,nullptr);
+	r->start->referNo = this->start->referNo;
+	r->out1 = list1(refer_end);
+	return r;
 }
 
 shared_ptr<vector<shared_ptr<NFA_state>>> Regex::list1(shared_ptr<NFA_state> outp)
@@ -239,7 +252,8 @@ void Regex::patch2(shared_ptr<vector<shared_ptr<NFA_state>>>& l, shared_ptr<NFA_
 	for (auto& t : *l)
 	{
 		t->out2 = s;
-		s->reverse_out.emplace_back(t);
+		if (s)
+			s->reverse_out.emplace_back(t);
 	}
 }
 
@@ -251,6 +265,8 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 		shared_ptr<NFA_state> new_out = make_shared<NFA_state>(Type::GroupEnd);
 		new_out->referNo = referNo;
 		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::GroupStart, new_out, nullptr);
+		if (new_out)
+			new_out->reverse_out.emplace_back(new_start);
 		new_start->referNo = referNo;
 		shared_ptr<NFA_state> group_match_state = make_shared<NFA_state>(Type::MatchState);
 		group_match_state->referNo = referNo;
@@ -268,6 +284,8 @@ void Regex::setGroupState(bool isGroup, bool isReference, int referNo)
 		shared_ptr<NFA_state> new_start = make_shared<NFA_state>(Type::ReferStart, new_out, nullptr);
 		new_start->referNo = referNo;
 		new_out->referNo = referNo;
+		if (new_out)
+			new_out->reverse_out.emplace_back(new_start);
 		this->start = new_start;
 		this->out1 = list1(new_out);
 		this->out2 = make_shared<vector<shared_ptr<NFA_state>>>();
@@ -279,6 +297,7 @@ void Regex::patch1(shared_ptr<vector<shared_ptr<NFA_state>>>& l, shared_ptr<NFA_
 	for (auto& t : *l)
 	{
 		t->out1 = s;
+		if (s)
 		s->reverse_out.emplace_back(t);
 	}
 }

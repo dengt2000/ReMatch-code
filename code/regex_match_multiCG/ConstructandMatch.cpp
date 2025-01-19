@@ -90,6 +90,7 @@ template <typename... Args>void Construct_Pb<Args...>::multi_iden(string& w, vec
 	int_t* DA = (int_t*)malloc(n * sizeof(int_t));
 
 	// sort
+	if(n>=3)
 	gsacak((unsigned char*)Text, (uint_t*)SA, LCP, (int_da*)DA, n);
 	////////////////////////////////////////////////////////
 	//printf("i\tSA\tDA\tLCP\tBWT\tsuffixes\n");
@@ -165,10 +166,7 @@ template <typename... Args>void Construct_Pb<Args...>::multi_iden(string& w, vec
 	}
 
 	if (t_Pb.size()) {
-		//for (int i = 0; i < t_Pb.size(); i++) {
-		//	cout << "<" << t_Pb[i].first << " " << t_Pb[i].second << ">";
-		//}
-		//cout << endl;
+
 		//Pb.emplace_back(t_Pb);
 		//visited.clear();
 		for (int j = 0; j < t_Pb.size(); j++) {
@@ -189,6 +187,7 @@ template <typename... Args>void Construct_Pb<Args...>::multi_iden(string& w, vec
 	}
 
 	init_data_mem();
+	//cout<<
 	multi_checkmatch2(position_edges, -1, -1, 1, referNo2num);
 
 
@@ -197,8 +196,6 @@ template <typename... Args>void Construct_Pb<Args...>::multi_iden(string& w, vec
 }
 
 template <typename... Args>void Construct_Pb<Args...>::init_data_mem(){
-	// length=w.length();
-	// cout<<"length"<<length<<endl;
 	leftPosition.resize(referCount);
 	current_PbNum.resize(referCount);
 	IsMatch = false;
@@ -237,7 +234,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 		return;
 	}
 	// cout<<visited.size()<<endl;
-	int referNo = referNo2num[first];
+	int referNo = referNo2num[first];//the n of \n
 	if (IsMatch) {
 		return;
 	}
@@ -249,13 +246,11 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 	}
 	
 	if ((first != -1 && second != -1) && third == 0) {
-		// cout<<1111<<endl;
 		leftPosition[first] = second;
 		// cout<<referNo<<endl;
 		int cG_referno=catchGroup[referNo];
 		
 		if (catchGroup[referNo] != first && catchGroup[referNo] != -1 ) {
-			// cout<<111<<endl;
 			// cout<<catchLength[referNo]<<endl;
 
 
@@ -268,10 +263,10 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 			using KeyType = std::tuple<TArgs...>;
 			KeyType key;
 			std::vector<int> indices;
-			for (int i = 0; i < groupNum; i++) {
-				if (i != referNo) {
+			for (int i = 0; i <= groupNum; i++) {
+				//if (i != referNo) {
 					indices.emplace_back(-1);
-				}
+				//}
 			}
 			
 			if (indices.size()) {
@@ -280,7 +275,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 			}
 			std::get<(sizeof...(TArgs)) - 1>(key) = first;
 			std::get<(sizeof...(TArgs)) - 2>(key) = second;
-			std::get<(sizeof...(TArgs)) - 3>(key) = second + catchLength[referNo];
+			//std::get<(sizeof...(TArgs)) - 3>(key) = second + catchLength[referNo];
 
 			//if (pathNum > 1) {
 			if (visited[key]) {
@@ -294,8 +289,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 	}
 	else if ((first != -1 || second != -1) && third == 1)
 	{
-		// cout<<first<<" "<<second<<" "<<third<<endl;
-		// cout<<first<<" "<<second<<endl;
+
 		int lposition = leftPosition[first];
 		int cG_referno=catchGroup[referNo];
 		
@@ -389,6 +383,7 @@ template <typename... TArgs> void Construct_Pb<TArgs...>::multi_check_empty_sect
 
 template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges, int first, int second, int third, unordered_map<int, int>& referNo2num) {
 	int referNo;
+	//cout<<first<<" "<<second<<" "<<third<<endl;
 	if(first==-1&&second==-1&&third==1){
 		for (auto temp : position_edges[first + 1][second + 1][third]) {
 			init_data_mem();
@@ -399,7 +394,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 				IsMatch = true;
 				return;
 			}
-			// cout<<first<<" "<<second<<" "<<third<<endl;
+			//cout<<first<<" "<<second<<" "<<third<<endl;
 			// cout << " -1,-1,1 " <<ffirst <<" " << ssecond << " " << tthird << endl;
 			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
@@ -407,9 +402,8 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 		}
 		return;
 	}
-
 	// if(first>=0&&first<referNo2num.size()){
-		referNo = referNo2num[first];
+	referNo = referNo2num[first];// the n of \n
 		// cout<<first<<" "<<referNo<<endl;  
 	// }
 	
@@ -435,8 +429,9 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			std::vector<int> indices;
 		
 			for (int i = 0; i < groupNum; i++) {
-				if (i != referNo) {
+				//if (i != referNo) {
 					indices.emplace_back(current_PbNum[i]);
+					//cout << i << " " << current_PbNum[i] << endl;
 					/*if (i < referNo) {
 						indices.emplace_back(current_PbNum[i]);
 					}
@@ -444,16 +439,21 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 						indices.emplace_back(-1);
 
 					}*/
-				}
+				//}
 			}
+			//for (int i = 0; i < indices.size(); i++)
+			//	cout << indices[i] << endl;
 			if (indices.size()) {
 				assign_tuple_elements<KeyType, 0>(key, indices);
 
 			}
 			std::get<(sizeof...(TArgs)) - 1>(key) = first;
 			std::get<(sizeof...(TArgs)) - 2>(key) = second;
-			std::get<(sizeof...(TArgs)) - 3>(key) = second + catchLength[referNo];
-
+			//for (int i = 0; i < key.size(); i++) {
+			//	cout << key[i] << endl;
+			//}
+			//std::get<(sizeof...(TArgs)) - 3>(key) = second + catchLength[referNo];
+			//cout<<
 			//if (pathNum > 1) {
 			
 			if (visited[key]) {
@@ -466,13 +466,11 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 
 			if (catchLength[referNo] == -1) {
 				if (current_PbNum[referNo] != -1) {
-					// cout<<1111111111<<endl;
 					return;
 				}
 			}
 			else {
 				if (current_PbNum[referNo] != Pb[second][second + catchLength[referNo]]) {
-					// cout<<2222222222<<endl;
 					return;
 				}
 			}
@@ -494,7 +492,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 				catchGroup[referNo] = first;
 				catchLength[referNo] = -1;
 			}
-			else {//如果是空，但是反向引用
+			else {
 				if (current_PbNum[referNo] != -1)
 					return;
 			}
@@ -504,6 +502,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			if (first ==  cG_referno  ||  cG_referno  == -1) {
 
 				current_PbNum[referNo] = Pb[lposition][second];
+				//cout << first << " "<<second << " " << current_PbNum[referNo] << endl;
 				// catchGroupPair[referNo].first = leftPosition[first];
 				// catchGroupPair[referNo].second = second;
 				catchGroup[referNo] = first;
@@ -520,7 +519,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 	}
 	
 	if (catchGroup[referNo] != first && first != -1&&catchGroup[referNo] != -1) {//
-		// cout<<1111111111<<endl;
+		
 
 		for (auto temp : position_edges[first + 1][second + catchLength[referNo] + 1][1]) {
 			// pathNum = position_edges[first + 1][second + catchLength[referNo] + 1][1].size();
@@ -536,7 +535,7 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 				return;
 			
 			// cout<<"catchLength"<<catchLength[referNo]<<endl;
-			// cout << " 11 " <<ffirst<<" " << ssecond << " " << tthird << endl;
+			 //cout << " 11 " <<ffirst<<" " << ssecond << " " << tthird << endl;
 
 			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)
@@ -546,7 +545,6 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 		
 	}
 	else {
-		//cout << 22222222 << endl;
 		for (auto temp : position_edges[first + 1][second + 1][third]) {
 			// pathNum = position_edges[first + 1][second + 1][third].size();
 			int ffirst = get<0>(temp);
@@ -561,8 +559,6 @@ template <typename... TArgs>void Construct_Pb<TArgs...>::multi_checkmatch2(vecto
 			}
 			if (IsMatch)
 				return;
-			// cout<<first<<" "<<second<<" "<<third<<"->";
-			// cout <<" 22 " << ffirst <<" " << ssecond << " " << tthird << endl;
 
 			multi_checkmatch2(position_edges, ffirst, ssecond, tthird, referNo2num);
 			if (IsMatch)

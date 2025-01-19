@@ -357,7 +357,7 @@ void induceSAl0_generalized_LCP(uint_t* SA, int_t* LCP,
                 last_occ[chr(SA[i] - 1)] = i + 1;
             }
 
-            int_t lcp = max(0, LCP[i]);
+            int_t lcp = max(0LL, LCP[i]);
             while (STACK[(top)-1].lcp >= lcp) (top)--;
 
             stack_push_k(STACK, &top, i + 1, lcp);
@@ -500,7 +500,7 @@ void induceSAs0_generalized_LCP(uint_t* SA, int_t* LCP,
         for (k = 0; k < K; k++) if (M[k] > LCP[i]) M[k] = LCP[i];
 #elif RMQ_S == 2
 
-        int_t lcp = max(0, LCP[i]);
+        int_t lcp = max(0LL, LCP[i]);
 
         while (STACK[(top)-1].lcp >= lcp) (top)--;
         stack_push_k(STACK, &top, i, lcp);
@@ -655,7 +655,7 @@ void induceSAl0_generalized_LCP_DA(uint_t* SA, int_t* LCP, int_da* DA,
                 last_occ[chr(SA[i] - 1)] = i + 1;
             }
 
-            int_t lcp = max(0, LCP[i]);
+            int_t lcp = max(0LL, LCP[i]);
             while (STACK[(top)-1].lcp >= lcp) (top)--;
 
             stack_push_k(STACK, &top, i + 1, lcp);
@@ -799,7 +799,7 @@ void induceSAs0_generalized_LCP_DA(uint_t* SA, int_t* LCP, int_da* DA,
         for (k = 0; k < K; k++) if (M[k] > LCP[i]) M[k] = LCP[i];
 #elif RMQ_S == 2
 
-        int_t lcp = max(0, LCP[i]);
+        int_t lcp = max(0LL, LCP[i]);
 
         while (STACK[(top)-1].lcp >= lcp) (top)--;
         stack_push_k(STACK, &top, i, lcp);

@@ -26,13 +26,13 @@ struct pair_comp {
 struct Hashfunc {
 	size_t operator() (const pair<int, int>& key) const {
 		auto seed = hash<int>()(key.first);
-		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//¹þÏ£º¯Êý¿ÉÒÔÓÅ»¯
+		return seed ^= std::hash<int>()(key.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);;//ï¿½ï¿½Ï£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å»ï¿½
 	}
 };
 struct Tuplefunc {
 	size_t operator() (const tuple<int, int,int>& key) const {
 		auto seed = hash<int>()(get<0>(key));
-		seed ^= std::hash<int>()(get<1>(key)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);//¹þÏ£º¯Êý¿ÉÒÔÓÅ»¯
+		seed ^= std::hash<int>()(get<1>(key)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		return seed ^= hash<int>()(get<2>(key)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 };
@@ -42,7 +42,6 @@ struct Equalfunc {
 	}
 };
 
-//±íÊ¾NFAµÄ×´Ì¬
 class Pattern;
 class NFA_state {
 public:
@@ -65,7 +64,7 @@ public:
 	int groupType;
 	int groupNo;
 	int c;
-	vector<shared_ptr<NFA_state>> reverse_out;
+	vector<weak_ptr<NFA_state>> reverse_out;
 	shared_ptr<NFA_state> out1;
 	shared_ptr<NFA_state> out2;
 	int group_state = 0;//  0:normal; 1:(; 2:); 
@@ -93,11 +92,16 @@ public:
 	bool positive; //true:positive;false:negtive;
 	int startNo;
 	bool hasRefer;
+	bool hasGroup;
+	int referNo;
 	shared_ptr<NFA_state> startState;
 	shared_ptr<NFA_state> matchState;
 	unordered_map<int, bool> result;
 	unordered_map<pair<int, int>, bool, Hashfunc, Equalfunc> visited;
 	unordered_map<int, bool> revered_visited;
+
+	unordered_map<int, bool> group_can_be_empty;
+	unordered_map<int, int> referNo2num;
 
 	//parameters for has_refer condition
 	//vector<vector<pair<int,int>>> start_positions;
@@ -111,17 +115,18 @@ public:
 
 	void reverse(shared_ptr<NFA_state>& start);
 	bool match(string s, int i);
-	bool reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_state);
+	bool reverse_dfs(string s, int i, shared_ptr<NFA_state> cur_state);
 	bool dfs(string s, int i, shared_ptr<NFA_state>& cur_state);
 
 	//methods for refer conditions
 	void refer_reverse_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount);
-	void refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount);
+	void refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount, unordered_map<int, unordered_map<int, vector<int>>>& group_maps, unordered_map<int, bool>& group_can_be_empty, 
+		unordered_map<int, int>& referNo2num, vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges);
 	void step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_state> cur);
 	void reverse_step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_state> cur);
-	void addEdge(tuple<int, int, int> v1, tuple<int, int, int> v2);
+	void addEdge(tuple<int, int, int> v1, tuple<int, int, int> v2, vector<vector<vector<vector<tuple<int, int, int>>>>>& position_edges);
 
-	LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer = false);
+	LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer = false,bool hasGroup=false);
 };
 
 class NfaList

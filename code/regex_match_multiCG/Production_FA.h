@@ -13,6 +13,11 @@ public:
 	unordered_map<int, shared_ptr<NFA_state>> group_start_state;
 	void reverse_step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_state> cur);
 	void get_inner(shared_ptr<NFA_state>s);
+	void clear_set(shared_ptr<unordered_set<tuple<int, int, int>, Tuplefunc>> &t) {
+		std::shared_ptr<std::unordered_set<std::tuple<int, int, int>, Tuplefunc>> empty_set;
+		swap(t, empty_set);
+		t = std::make_shared<std::unordered_set<std::tuple<int, int, int>, Tuplefunc>>();
+	}
 	unordered_map<int, int> referNo2num;
 	vector<int> inner;
 	int groupNum;

@@ -76,10 +76,10 @@ NFA_state::NFA_state(int c, shared_ptr<NFA_state> out1, shared_ptr <NFA_state> o
 
 	cur_set->rehash(max(referNo * wlen, 0));
 	next_set->rehash(max(referNo * wlen, 0));
-	if (out1 != nullptr)
-		out1->reverse_out.emplace_back(this);
-	if (out2 != nullptr)
-		out2->reverse_out.emplace_back(this);
+	//if (out1 != nullptr)
+	//	out1->reverse_out.emplace_back(this);
+	//if (out2 != nullptr)
+	//	out2->reverse_out.emplace_back(this);
 	/*}
 else if (this->c == Type::GroupStart || this->c == Type::GroupEnd || this->c == Type::ReferStart || this->c == Type::ReferEnd||this->c==Type::MatchState
 	|| this->c == Type::Scale || this->c == Type::Digit || this->c == Type::NonWord || this->c == Type::Word || this->c == Type::SingleLetter || this->c == Type::NonSingleLetter || this->c == Type::AnyChar)
@@ -104,10 +104,10 @@ NFA_state::NFA_state(char c, shared_ptr<NFA_state> out1, shared_ptr<NFA_state> o
 	next_set->reserve(max(referNo * wlen, 0));
 	cur_set->rehash(max(referNo * wlen, 0));
 	next_set->rehash(max(referNo * wlen, 0));
-	if (out1 != nullptr)
-		out1->reverse_out.emplace_back(this);
-	if (out2 != nullptr)
-		out2->reverse_out.emplace_back(this);
+	//if (out1 != nullptr)
+	//	out1->reverse_out.emplace_back(this);
+	//if (out2 != nullptr)
+	//	out2->reverse_out.emplace_back(this);
 	/*}
 	else if (this->c == Type::GroupStart || this->c == Type::GroupEnd || this->c == Type::ReferStart || this->c == Type::ReferEnd || this->c == Type::MatchState
 		|| this->c == Type::Scale || this->c == Type::Digit || this->c == Type::NonWord || this->c == Type::Word || this->c == Type::SingleLetter || this->c == Type::NonSingleLetter || this->c == Type::AnyChar)
@@ -159,7 +159,10 @@ ScaleState::ScaleState(bitset<256> s) :NFA_state(Type::Scale), scale(s)
 
 string ScaleState::toString()
 {
-	return string();
+	shared_ptr<NFA_state>out2 = this->out2;
+	return "[c:" + std::to_string(c) + ",out1:" +
+		(out1 == NULL ? "NULL" : out1->toString()) +
+		",out2:" + (out2 == NULL ? "NULL" : out2->toString()) + "]";;
 }
 bool LookAroundState::match(string s, int i)
 {
@@ -214,7 +217,7 @@ void LookAroundState::reverse(shared_ptr<NFA_state>& start)
 }
 
 
-bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_state)
+bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state> cur_state)
 {
 	if (cur_state == nullptr)
 		return false;
@@ -223,15 +226,18 @@ bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_st
 	if (cur_state->c == Type::Split || cur_state->c == Type::Blank)
 	{
 		for (auto& state : cur_state->reverse_out)
-			if (reverse_dfs(s, i, state))
+			if (reverse_dfs(s, i, state.lock()))
 				return true;
 		return false;
 	}
-	if (i < 0)
+	if (i < -1)
 		return false;
-	char c = s[i];
+	char c = ' ';
+	if (i >= 0)
+		c = s[i];
 	if (c < 0 || c>255)
 		throw 4;
+
 	if (visited.find(make_pair(cur_state->id, i)) != visited.end())
 		return false;
 	visited.insert(make_pair(make_pair(cur_state->id, i), true));
@@ -241,27 +247,31 @@ bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_st
 	case 257:
 	{
 		for (auto& state : cur_state->reverse_out)
-			if (reverse_dfs(s, i, state))
+			if (reverse_dfs(s, i, state.lock()))
 				return true;
 		return false;
 	}
 	case Type::Blank:
 	{
 		for (auto& state : cur_state->reverse_out)
-			if (reverse_dfs(s, i, state))
+			if (reverse_dfs(s, i, state.lock()))
 				return true;
 		return false;
 	}
 	default:
 	{
+		if (i == -1)
+			return false;
 		if (cur_state->c == s[i] - ' ' || (cur_state->c == Type::AnyChar && c != '\n' - ' ')
-			|| (cur_state->c == Type::SingleLetter && (islower(c) || isupper(c)))
-			|| (cur_state->c == Type::NonSingleLetter && !(islower(c) || isupper(c)))
+			|| (cur_state->c == Type::SingleLetter && (isspace(c)))
+			|| (cur_state->c == Type::NonSingleLetter && !(isspace(c)))
 			|| (cur_state->c == Type::Digit && c > -1 && c <= 200 && isdigit(c))
+			|| (cur_state->c == Type::NonDigit && !isdigit(c))
+			|| (cur_state->c == Type::NonWord && !(isalnum(c) || c == '_'))
 			|| (cur_state->c == Type::Word && c > -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 		{
 			for (auto& state : cur_state->reverse_out)
-				if (reverse_dfs(s, i - 1, state))
+				if (reverse_dfs(s, i - 1, state.lock()))
 					return true;
 		}
 		else if (cur_state->c == Type::Scale)
@@ -270,7 +280,7 @@ bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_st
 			if (ss->scale[s[i]])
 			{
 				for (auto& state : cur_state->reverse_out)
-					if (reverse_dfs(s, i - 1, state))
+					if (reverse_dfs(s, i - 1, state.lock()))
 						return true;
 			}
 		}
@@ -280,11 +290,15 @@ bool LookAroundState::reverse_dfs(string s, int i, shared_ptr<NFA_state>& cur_st
 }
 bool LookAroundState::dfs(string s, int i, shared_ptr<NFA_state>& cur_state)
 {
+	if (!cur_state)
+		return false;
 	if (cur_state->c == 257)
 		return true;
-	if (i >= s.length())
+	if (i > s.length())
 		return false;
-	char c = s[i];
+	char c = ' ';
+	if(c<s.length())
+	  c = s[i];
 	if (c < 0 || c>255)
 		throw 4;
 	if (visited.find(make_pair(cur_state->id, i)) != visited.end())
@@ -307,12 +321,32 @@ bool LookAroundState::dfs(string s, int i, shared_ptr<NFA_state>& cur_state)
 			return true;
 		return false;
 	}
+	case Type::MetaCharacter:
+	{
+		bool meta = false;
+		if (i > 0 && i < s.length())
+		{
+			if ((isalnum(s[i - 1]) || s[i - 1] == '_') && (isalnum(s[i]) || s[i] == '_'))
+				return false;
+			if (!(isalnum(s[i - 1]) || s[i - 1] == '_') && !(isalnum(s[i]) || s[i] == '_'))
+				return false;
+		}
+		if (dfs(s, i, cur_state->out2))
+			return true;
+		if (dfs(s, i, cur_state->out1))
+			return true;
+		return false;
+	}
 	default:
 	{
-		if (cur_state->c == s[i] - ' ' || (cur_state->c == Type::AnyChar && c != '\n' - ' ')
-			|| (cur_state->c == Type::SingleLetter && (islower(c) || isupper(c)))
-			|| (cur_state->c == Type::NonSingleLetter && !(islower(c) || isupper(c)))
+		if (i == s.length())
+			return false;
+		if (cur_state->c == s[i] - ' ' || (cur_state->c == Type::AnyChar && c != '\n' - ' '&&i!=s.length())
+			|| (cur_state->c == Type::SingleLetter && (isspace(c)))
+			|| (cur_state->c == Type::NonSingleLetter && !(isspace(c)))
 			|| (cur_state->c == Type::Digit && c > -1 && c <= 200 && isdigit(c))
+			|| (cur_state->c == Type::NonDigit && !isdigit(c))
+			|| (cur_state->c == Type::NonWord && !(isalnum(c) || c == '_'))
 			|| (cur_state->c == Type::Word && c > -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 		{
 			return dfs(s, i + 1, cur_state->out1);
@@ -369,7 +403,7 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 			{
 				//shared_ptr<Production_State> curstate= cmap->at(cur->id);
 				for (auto& state : cur->reverse_out)
-					reverse_step(state, c, i, cur);
+					reverse_step(state.lock(), c, i, cur);
 			}
 		}
 		for (auto& node : *NFA_statesets)
@@ -399,14 +433,14 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 			{
 				for (auto t : *node->next_set)
 				{
-					addEdge(t, make_tuple(node->referNo, i,1));
+					addEdge(t, make_tuple(node->referNo, i,1),position_edges);
 				}
 				break;
 			}
 			case Type::RevMatchState:
 				for (auto t : *startState->next_set)
 				{
-					addEdge(t, make_tuple(-1, -1,0));
+					addEdge(t, make_tuple(-1, -1,0),position_edges);
 				}
 				break;
 			}
@@ -434,6 +468,7 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 	///cmap = nmap;
 	//nmap = t2;
 	//nmap->clear();
+	//cout << clist->size() << "��" << cmap->size()<<endl;
 	std::fill(refer_visited.begin(), refer_visited.end(), 0);
 	NFA_statesets->clear();
 	for (auto& cur : *clist)
@@ -441,7 +476,7 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 		//shared_ptr<Production_State> &curstate = cmap->at(cur->id);
 		//cout <<"\nfinal:"  << cur->c << " " << curstate->id.first;
 		for (auto& state : cur->reverse_out)
-			reverse_step(state, ' ', -1, cur);
+			reverse_step(state.lock(), ' ', -1, cur);
 	}
 	for (auto& node : *NFA_statesets)
 	{
@@ -457,17 +492,21 @@ void LookAroundState::refer_reverse_bfs(string s, vector<int>& min_t, vector<vec
 	for (auto t : *startState->next_set)
 	{
 		//cout << j << endl;
-		addEdge(t, make_tuple(-1, -1,0));
+		addEdge(t, make_tuple(-1, -1,0),position_edges);
 	}
 	return;
 }
 
-void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount)
+void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vector<bool>>>& groups, int referCount,unordered_map<int,unordered_map<int,vector<int>>> &group_maps, unordered_map<int, bool>& group_can_be_empty, unordered_map<int,int>&referNo2num,vector<vector<vector<vector<tuple<int,int,int>>>>>&position_edges)
 {
+	this->group_can_be_empty = group_can_be_empty;
+	this->referNo2num = referNo2num;
 	clist = make_shared<vector<shared_ptr<NFA_state>>>();
 	nlist = make_shared<vector<shared_ptr<NFA_state>>>();
 	tlist = make_shared<vector<shared_ptr<NFA_state>>>();
-	position_edges.resize(referCount + 2);
+	vector<unordered_set<shared_ptr<NFA_state>>> referEndMap(s.length() + 1);
+	//position_edges.resize(referCount + 2);
+	referNo = referCount + look_aroundno;
 	for (int i = 0; i < referCount  + 2; i++)
 	{
 		position_edges[i].resize(s.length() + 3);
@@ -477,21 +516,22 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 		//(*check_behind_edges)[i].resize(w.length()+3);
 	}
 	refer_visited.resize(matchState->id + 1);
-	if (start_positions.size() <= 0)
-		return;
+	//if (start_positions.size() <= 0)
+	//	return;
 	int position = 0;
-	for (int i = start_positions[position]; i < s.length(); i++)
+	for (int i = 0; i <= s.length(); i++)
 	{
-		char c = s[i];
-		if (i == start_positions[position])
-		{
-			position++;
-			startState->cur_set->clear();
+		char c = ' ';
+		if (i < s.length())
+			c = s[i];
+		//if (i == start_positions[position])
+		//{
+		//	position++;
+		startState->cur_set->clear();
 			//for(auto pair:start_positions[i])
-			startState->cur_set->insert(make_tuple(-1, i,1));
-			startState->groupType = 1;
-			clist->emplace_back(startState);
-		}
+		startState->cur_set->insert(make_tuple(referNo, i,0));
+		startState->groupType = 1;
+		clist->emplace_back(startState);
 		std::fill(refer_visited.begin(), refer_visited.end(), 0);
 		if (clist->size())
 		{
@@ -502,6 +542,11 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 				step(cur->out2, c, i, cur);
 			}
 		}
+		for (auto& cur : referEndMap[i])
+		{
+			//cout <<__FILE__<<__LINE__<<" "<< i <<" "<<cur->id<<" "<< cur->c << " " << cur->id;
+			step(cur, c, i, cur);
+		}
 		for (auto& node : *NFA_statesets)
 		{
 
@@ -510,11 +555,25 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 			case Type::GroupStart:
 			case Type::ReferStart:
 			{
-				auto pair = make_pair(node->referNo, i);
-				for (auto t : *node->next_set)
-				{
-					addEdge(t, make_tuple(node->referNo, i,0));
+				int nodeGroupNo = referNo2num[node->referNo];
+				auto group_map = group_maps[nodeGroupNo];
+				auto it = group_map.find(i);
+				if (it != group_map.end()) {
+					auto pair = make_pair(node->referNo, i);
+					for (auto t : *node->next_set)
+					{
+						addEdge(make_tuple(get<0>(t), get<1>(t), get<2>(t)), make_tuple(node->referNo, i, 0),position_edges);
+					}
+					for (int j : it->second) {
+						if (j > i) {
+							//cout << __FILE__ << __LINE__ << " " << node->c << " " << node->out1->c << endl;
+							referEndMap[j].insert(node->out1);
+						}
+					}
 				}
+
+				node->next_set->clear();
+				node->cur_set->clear();
 				/*
 				for (int j = node->next_set->find_first(); j < node->next_set->size(); j = node->next_set->find_next(j))
 				{
@@ -524,6 +583,17 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 				break;
 			}
 			case Type::GroupEnd:
+			{
+				for (auto t : *node->next_set)
+				{
+					if (get<1>(t) < min_t[i] && get<1>(t) >= 0)
+						min_t[i] = get<1>(t);
+					addEdge(make_tuple(get<0>(t), get<1>(t), get<2>(t)), make_tuple(node->referNo, i - 1, 1),position_edges);
+				}
+				node->next_set->clear();
+				node->cur_set->clear();
+				break;
+			}
 			case Type::ReferEnd:
 			{
 				for (auto t : *node->next_set)
@@ -535,11 +605,13 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 				break;
 			}
 			case Type::MatchState:
+			{
 				for (auto t : *matchState->next_set)
 				{
-					addEdge(t, make_tuple(-1, -1,0));
+					addEdge(t, make_tuple(referNo, -1, 1),position_edges);
 				}
 				break;
+			}
 			}
 			node->next_set->clear();
 			node->cur_set->clear();
@@ -565,36 +637,9 @@ void LookAroundState::refer_bfs(string s, vector<int>& min_t, vector<vector<vect
 	///cmap = nmap;
 	//nmap = t2;
 	//nmap->clear();
+	//cout << clist->size() << "��" << cmap->size()<<endl;
 	std::fill(refer_visited.begin(), refer_visited.end(), 0);
 	NFA_statesets->clear();
-	for (auto& cur : *clist)
-	{
-		//shared_ptr<Production_State> &curstate = cmap->at(cur->id);
-		//cout <<"\nfinal:"  << cur->c << " " << curstate->id.first;
-		step(cur->out1, ' ', s.length(), cur);
-		step(cur->out2, ' ', s.length(), cur);
-	}
-	if (!hasRefer)
-	{
-		return;
-	}
-	for (auto& node : *NFA_statesets)
-	{
-		if (node->c == Type::ReferEnd)
-		{
-			for (auto t : *node->next_set)
-			{
-				if (get<1>(t) < min_t[s.length()])
-					min_t[s.length()] = get<1>(t);
-				//groups[node->referNo][get<1>(t)][s.length()] = 1;
-			}
-		}
-	}
-	for (auto t : *matchState->next_set)
-	{
-		//cout << j << endl;
-		addEdge(t, make_tuple(-1, -1,0));
-	}
 	return;
 }
 void LookAroundState::reverse_step(shared_ptr<NFA_state> s, char c, int i,
@@ -622,7 +667,7 @@ void LookAroundState::reverse_step(shared_ptr<NFA_state> s, char c, int i,
 		//cout <<"Split:" << curstate->groupType;
 		s->lock = true;
 		for (auto& state : s->reverse_out)
-			reverse_step(state, c, i, cur);
+			reverse_step(state.lock(), c, i, cur);
 		s->lock = false;
 		return;
 	}
@@ -630,7 +675,7 @@ void LookAroundState::reverse_step(shared_ptr<NFA_state> s, char c, int i,
 	{
 		s->lock = true;
 		for (auto& state : s->reverse_out)
-			reverse_step(state, c, i, cur);
+			reverse_step(state.lock(), c, i, cur);
 		s->lock = false;
 		return;
 	}
@@ -662,7 +707,7 @@ void LookAroundState::reverse_step(shared_ptr<NFA_state> s, char c, int i,
 			s->groupType = 0;
 			s->lock = true;
 			for (auto& state : s->reverse_out)
-				reverse_step(state, c, i, s);
+				reverse_step(state.lock(), c, i, s);
 			s->lock = false;
 			return;
 	}
@@ -702,17 +747,21 @@ void LookAroundState::reverse_step(shared_ptr<NFA_state> s, char c, int i,
 			s->groupType = 1;
 			s->lock = true;
 			for (auto& state : s->reverse_out)
-				reverse_step(state, c, i, s);
+				reverse_step(state.lock(), c, i, s);
 			s->lock = false;
 			return;
 	}
 	default:
 		break;
 	}
+	if (i == -1)
+		return;
 	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
-		|| (s->c == Type::SingleLetter && (islower(c) || isupper(c)))
-		|| (s->c == Type::NonSingleLetter && !(islower(c) || isupper(c)))
+		|| (s->c == Type::SingleLetter && (isspace(c)))
+		|| (s->c == Type::NonSingleLetter && !(isspace(c)))
 		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+		|| (s->c == Type::NonDigit && !isdigit(c))
+		|| (s->c == Type::NonWord && !(isalnum(c) || c == '_'))
 		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 	{
 		s->groupType = cur->groupType;
@@ -763,7 +812,10 @@ void LookAroundState::step(shared_ptr<NFA_state> s, char c, int i,
 	case 257:
 	{
 		s->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
-		NFA_statesets->insert(s);
+		s->first_set->insert(cur->first_set->begin(), cur->first_set->end());
+		if (refer_visited[s->id] == 1) {
+			NFA_statesets->insert(s);
+		}
 		return;
 	}
 	case Type::Split:
@@ -786,83 +838,48 @@ void LookAroundState::step(shared_ptr<NFA_state> s, char c, int i,
 	case Type::GroupStart:
 	{
 		//cout << "groupStart";
-		if (cur->groupType == 0)
-		{
-			if (cur->referNo != s->referNo)
-				return;
-			clock_t begin = clock();
-			//curstate->addPlace(s->referNo, i);
-			cur->cur_set->insert(make_tuple(s->referNo, i,0));
-			//(* cur->cur_set)[i+1] = 1;
-			//groupStarts[s->referNo]->insert(i);
-			s->lock = true;
-			step(s->out1, c, i, cur);
-			step(s->out2, c, i, cur);
-			cur->cur_set->erase(make_tuple(s->referNo, i,0));
-			//(*cur->cur_set)[i+1] = 0;
-			s->lock = false;
-			return;
-		}
-		else if (cur->groupType == 1)
+		s->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
+		s->first_set->insert(cur->first_set->begin(), cur->first_set->end());
+		if (refer_visited[s->id] == 1)
 		{
 			NFA_statesets->insert(s);
-			s->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
-			s->cur_set->insert(make_tuple(s->referNo, i,1));
-			s->groupType = 0;
+		}
+		if (group_can_be_empty[referNo2num[s->referNo]])
+		{
 			s->lock = true;
-			step(s->out1, c, i, s);
-			step(s->out2, c, i, s);
+			if (s->out1)
+			{
+				s->out1->first_set->insert(s->first_set->begin(), s->first_set->end());
+				step(s->out1, c, i, s);
+			}
+			if (s->out2)
+			{
+				s->out2->first_set->insert(s->first_set->begin(), s->first_set->end());
+				step(s->out2, c, i, s);
+			}
 			s->lock = false;
-			return;
 		}
 	}
 	case Type::ReferEnd:
 	case Type::GroupEnd:
 	{
-		//cout << "groupEnd";
-		if (cur->groupType == 1)
-		{
-			cur->cur_set->insert(make_tuple(s->referNo, i - 1,1));
-			//curstate->addPlace(s->referNo, i-1);
-			//groupEnds[s->referNo]->insert(i - 1);
-			s->lock = true;
-			step(s->out1, c, i, cur);
-			cur->cur_set->erase(make_tuple(s->referNo, i - 1,1));
-			//(*cur->cur_set)[i] = 0;
-			s->lock = false;
-			return;
-		}
-		else if (cur->groupType == 0)
-		{
-			/*
-			for (auto t : curstate->places)
-			{
-				groups[s->referNo].insert(make_pair(t.second, i - 1));
-			}
-			*/
-			for (auto t : *cur->cur_set)
-				s->next_set->insert(t);
-			s->cur_set->insert(make_tuple(s->referNo, i - 1,0));
-			//(*s->cur_set)[i] = 1;
-			NFA_statesets->insert(s);
-			//shared_ptr<Production_State> nextstate (new Production_State(1, i, -1));
-			//nextstate->addPlace(s->referNo, i - 1);
-			//groupEnds[s->referNo]->insert(i - 1);
-			//curstate->out.push_back(nextstate);
-			s->groupType = 1;
-			s->lock = true;
-			step(s->out1, c, i, s);
-			s->lock = false;
-			return;
-		}
+		s->cur_set->insert(make_tuple(s->referNo, i - 1, 1));
+		s->lock = true;
+		step(s->out1, c, i, s);
+		s->lock = false;
+		s->cur_set->clear();
+		s->first_set->clear();
+		return;
 	}
 	default:
 		break;
 	}
 	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
-		|| (s->c == Type::SingleLetter && (islower(c) || isupper(c)))
-		|| (s->c == Type::NonSingleLetter && !(islower(c) || isupper(c)))
+		|| (s->c == Type::SingleLetter && (isspace(c)))
+		|| (s->c == Type::NonSingleLetter && !(isspace(c)))
 		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+		|| (s->c == Type::NonDigit && !isdigit(c))
+		|| (s->c == Type::NonWord && !(isalnum(c) || c == '_'))
 		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 	{
 		s->groupType = cur->groupType;
@@ -893,7 +910,7 @@ void LookAroundState::step(shared_ptr<NFA_state> s, char c, int i,
 	}
 }
 
-void LookAroundState::addEdge(tuple<int, int,int> v1, tuple<int, int,int> v2)
+void LookAroundState::addEdge(tuple<int, int,int> v1, tuple<int, int,int> v2,vector<vector<vector<vector<tuple<int,int,int>>>>>&position_edges)
 {
 	//position_edges.insert(make_pair(v1, v2));
 	if (get<0>(v2) == -1 && get<1>(v2) >= 0)
@@ -961,7 +978,7 @@ bool NfaList::operator<(const NfaList& o) const
 	}
 }
 
-LookAroundState::LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer) :NFA_state(Type::LookAround), ahead(ahead), positive(positive), matchState(matchState), hasRefer(hasRefer)
+LookAroundState::LookAroundState(bool ahead, bool positive, shared_ptr<NFA_state>& startState, shared_ptr<NFA_state>& matchState, bool hasRefer,bool hasGroup) :NFA_state(Type::LookAround), ahead(ahead), positive(positive), matchState(matchState), hasRefer(hasRefer),hasGroup(hasGroup)
 {
 	//this->start_positions.resize(wlen + 3);
 	if (ahead)

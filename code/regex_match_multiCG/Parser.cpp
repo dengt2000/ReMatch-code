@@ -19,7 +19,7 @@ Parser::Parser(string in)
 	}
 	for (int i=0;i<input.length()-1;i++)
 	{
-		if (input[i] == '\\' &&(input[i+1]>=48&&input[i+1] <= 57))
+		if ((i == 0 || (i > 0 && input[i - 1] != '\\'))&& input[i] == '\\' &&(input[i+1]>48&&input[i+1] <= 57))
 		{
 			int num=0;
 			for (int j = i + 1; input[j] >= 48 && input[j]<=57; j++)
@@ -43,7 +43,9 @@ Parser::Parser(string in)
 	if (!isSuffix)
 		input = input + ".*";
 	*/
+	shared_ptr<Regex> st(new Blank());
 	re = regex();
+	re = make_shared<Sequence>(st, re);
 	matchState = make_shared<NFA_state>(257);
 	stateNo = matchState->id - re->start->id + 1;
 	patch1(re->out1, matchState);
@@ -59,6 +61,8 @@ shared_ptr<Regex> Parser::parse()
 
 char Parser::peek()
 {
+	if (position >= input.length())
+		cout << position;
 	return input.at(position);
 }
 
@@ -179,10 +183,12 @@ shared_ptr<Regex> Parser::base()
 					abort();
 				}
 				int start = position;
+				int t = referCount;
 				shared_ptr<Regex> r = regex();
 				int end = position;
 				eat(')');
 				bool hasrefer=false;
+				bool hasgroup = referCount != t;
 				for (int j = start; j <= end - 1; j++)
 				{
 					if (input[j] == '\\' && (input[j + 1] >= 48 && input[j + 1] <= 57))
@@ -191,11 +197,11 @@ shared_ptr<Regex> Parser::base()
 						break;
 					}
 				}
-				auto lookaround= make_shared<class::LookAround>(r, ahead, positive,hasrefer);
-				if (hasrefer)
+				auto lookaround= make_shared<class::LookAround>(r, ahead, positive,hasrefer,hasgroup);
+				if (hasrefer||hasgroup)
 				{
 						lookarounds->emplace_back(dynamic_pointer_cast<LookAroundState>(lookaround->start));
-						lookaround->start->look_aroundno = lookarounds->size();
+						lookaround->start->look_aroundno = lookarounds->size()-1;
 				}
 				return lookaround;
 			}
@@ -209,6 +215,7 @@ shared_ptr<Regex> Parser::base()
 			if (id2num.find(tempid) != id2num.end())
 			{
 				referno = referCount++;
+				r->group_copy = r->copy();
 				int groupNo = id2num[tempid];
 				referNo2num.insert(make_pair(referno, groupNo));
 				r->start->referNo = referno;
@@ -227,13 +234,23 @@ shared_ptr<Regex> Parser::base()
 			return r;
 		}
 	}
+	case '^':
+	{
+		eat('^');
+		return make_shared<Blank>();
+	}
+	case '$':
+	{
+		eat('$');
+		return make_shared<Blank>();
+	}
 	case '\\':
 	{
 		eat('\\');
 		char esc = next();
 		if (esc > 255 || esc <= 0)
 			throw 1;
-		if (isdigit(esc))
+		if (isdigit(esc)&&esc!='0')
 		{
 			int id=esc-'0';
 			while (more()&&isdigit(peek()))
@@ -242,7 +259,7 @@ shared_ptr<Regex> Parser::base()
 				id = id * 10 + esc - '0';
 			}
 			if (id > groupID)
-				throw 3;
+				throw 3; 
 			//shared_ptr<Regex> re = group[id]->copy();
 			shared_ptr<Regex> re = make_shared<BackRefer>();
 			referNo2num.insert(make_pair(referCount, id2num[id]));
@@ -282,17 +299,22 @@ shared_ptr<Regex> Parser::multichoice()
 		eat('^');
 	}
 	shared_ptr<MultiChoice> ans(new MultiChoice());
+	if (more() && peek() == ']')
+	{
+		eat(']');
+		ans->orOp(make_shared<MultiChoice>(']', ']'));
+	}
 	while (more() && peek() != ']')
 	{
 		shared_ptr<MultiChoice> single = dynamic_pointer_cast<MultiChoice>(Parser::singlechoice(true));
 		ans->orOp(single);
-		while (peek() == '&')
+		/*while (peek() == '&')
 		{
 			eat('&');
 			eat('&');
 			shared_ptr<MultiChoice> second = dynamic_pointer_cast<MultiChoice>(Parser::andchoice());
 			ans->andOp(second);
-		}
+		}*/
 	}
 	if (negative)
 		ans->reverse();
@@ -313,7 +335,6 @@ shared_ptr<Regex> Parser::singlechoice(bool in)
 	char c1 = next();
 	if (c1 == '\\')
 	{
-		eat('\\');
 		c1 = next();
 		switch (c1)
 		{
@@ -337,6 +358,7 @@ shared_ptr<Regex> Parser::singlechoice(bool in)
 			auto p = make_shared<MultiChoice>('0', '9');
 			p->orOp(make_shared<MultiChoice>('a', 'z'));
 			p->orOp(make_shared<MultiChoice>('A', 'Z'));
+			p->orOp(make_shared<MultiChoice>('_', '_'));
 			return p;
 		}
 		case 'W':
@@ -344,12 +366,19 @@ shared_ptr<Regex> Parser::singlechoice(bool in)
 			auto p = make_shared<MultiChoice>('0', '9');
 			p->orOp(make_shared<MultiChoice>('a', 'z'));
 			p->orOp(make_shared<MultiChoice>('A', 'Z'));
+			p->orOp(make_shared<MultiChoice>('_', '_'));
 			p->reverse();
 			return p;
 		}
 		case 'd':
 		{
 			return make_shared<MultiChoice>('0', '9');
+		}
+		case 'D':
+		{
+			auto p = make_shared<MultiChoice>('0', '9');
+			p->reverse();
+			return p;
 		}
 		default:
 			break;

@@ -27,10 +27,11 @@ Production_FA::Production_FA(string E, string w) {
 	tlist = make_shared<vector<shared_ptr<NFA_state>>>();
 	NFA_statesets = make_shared<unordered_set<shared_ptr<NFA_state>>>();
 	int w_length = w.length();
-	
+
 	re->start->cur_set = make_shared<unordered_set<tuple<int, int,int>, Tuplefunc>>();
 	re->start->referNo = -1;
 	re->start->groupType = 1;
+	re->start->cur_set->insert(make_tuple(-1, -1, 1));
 	matchState = p->matchState;
 	matchState->referNo = referCount + 1;
 	matchState->groupType = 0;
@@ -70,6 +71,7 @@ Production_FA::Production_FA(string E, string w) {
 		{
 			for (auto& cur : referEndMap[i])
 			{
+				//cout <<__FILE__<<__LINE__<<" "<< i <<" "<<cur->id<<" "<< cur->c << " " << cur->id;
 				step(cur, c, i, cur);
 			}
 			for (auto& node : *NFA_statesets)
@@ -83,22 +85,26 @@ Production_FA::Production_FA(string E, string w) {
 					la->start_positions.emplace_back(i);
 					for (auto t : *node->next_set)
 					{
-						if (get<0>(t) > -1)
+						if (get<0>(t) >= -1)
 						{
 							//(*check_behind_edges)[t.first + 1][t.second + 1].insert(la);
 							addEdge(make_tuple(get<0>(t), get<1>(t), get<2>(t)), make_tuple(pair.first, pair.second, 0));
 						}
 					}
+					clear_set(node->next_set);
+					clear_set(node->cur_set);
+					/*node->next_set->clear();
+					node->cur_set->clear();*/
 					break;
 				}
 				case Type::GroupStart:
 				case Type::ReferStart:
 				{
-					addEdge(make_tuple(-1, -1, 1), make_tuple(node->referNo, i, 0));
+					//if(node->c==Type::GroupStart)
+					//	addEdge(make_tuple(-1, -1, 1), make_tuple(node->referNo, i, 0));
 					int nodeGroupNo = referNo2num[node->referNo];
-					auto group_map = group_maps[nodeGroupNo];
-					auto it = group_map.find(i);
-					if (it != group_map.end()) {
+					auto it = group_maps[nodeGroupNo].find(i);
+					if (it != group_maps[nodeGroupNo].end()) {
 						auto pair = make_pair(node->referNo, i);
 						for (auto t:*node->next_set)
 						{
@@ -106,10 +112,12 @@ Production_FA::Production_FA(string E, string w) {
 						}
 						for (int j : it->second) {
 							if (j > i) {
+								//cout << __FILE__ << __LINE__ << " " << node->c << " " << node->out1->c << endl;
 								referEndMap[j].insert(node->out1);
 							}
 						}
 					}
+
 					node->next_set->clear();
 					node->cur_set->clear();
 					break;
@@ -152,8 +160,8 @@ Production_FA::Production_FA(string E, string w) {
 							addEdge(make_tuple(get<0>(t), get<1>(t), get<2>(t)), make_tuple(-1, -1, 0));
 						}
 					}
-					node->next_set->clear();
-					node->cur_set->clear();
+					clear_set(node->next_set);
+					clear_set(node->cur_set);
 					break;
 				}
 				}
@@ -166,7 +174,8 @@ Production_FA::Production_FA(string E, string w) {
 					auto temp = nxt->cur_set;
 					nxt->cur_set = nxt->next_set;
 					nxt->next_set = temp;
-					nxt->next_set->clear();
+					/*nxt->next_set->clear();*/
+					clear_set(nxt->next_set);
 				}
 			}
 		}
@@ -178,6 +187,9 @@ Production_FA::Production_FA(string E, string w) {
 
 	if (!hasRefer)
 	{
+		clist->clear();
+		nlist->clear();
+		NFA_statesets->clear();
 		return;
 	}
 	clist->clear();
@@ -214,7 +226,7 @@ Production_FA::Production_FA(string E, string w) {
 	for (auto& la : *lookarounds)
 	{
 		if (!la->ahead)
-			la->refer_bfs(w, min_t, groups, referCount);
+			la->refer_bfs(w, min_t, groups, referCount,group_maps,group_can_be_empty,referNo2num,position_edges);
 		else
 			la->refer_reverse_bfs(w, min_t, groups, referCount);
 	}
@@ -245,6 +257,8 @@ Production_FA::Production_FA(string E, string w) {
 			section.emplace_back(temp);
 		reverse(section.begin(), section.end());
 	}
+	clist->clear();
+	nlist->clear();
 }
 
 void Production_FA::get_inner(shared_ptr<NFA_state>start)
@@ -255,7 +269,7 @@ void Production_FA::get_inner(shared_ptr<NFA_state>start)
 	{
 		auto s = Queue.front();
 		Queue.pop();
-		if (s->c == Type::GroupEnd || s->c == Type::ReferEnd)
+		if (s->c == Type::GroupEnd || s->c == Type::ReferEnd||s->c==Type::MatchState)
 			inner[s->id] = 1;
 		if (s->c == Type::LookAround)
 		{
@@ -268,10 +282,10 @@ void Production_FA::get_inner(shared_ptr<NFA_state>start)
 		{
 			for (auto state : s->reverse_out)
 			{
-				if (visited[state->id] == 0)
+				if (visited[state.lock()->id] == 0)
 				{
-					Queue.push(state);
-					visited[state->id]++;
+					Queue.push(state.lock());
+					visited[state.lock()->id]++;
 				}
 			}
 		}
@@ -279,16 +293,16 @@ void Production_FA::get_inner(shared_ptr<NFA_state>start)
 		{
 			for (auto state : s->reverse_out)
 			{
-				if (inner[state->id] == 0)
+				if (inner[state.lock()->id] == 0)
 				{
-					inner[state->id] = 1;
-					if (visited[state->id] == 2)
-						visited[state->id] = 0;
+					inner[state.lock()->id] = 1;
+					if (visited[state.lock()->id] == 2)
+						visited[state.lock()->id] = 0;
 				}
-				if (visited[state->id] == 0)
+				if (visited[state.lock()->id] == 0)
 				{
-					Queue.push(state);
-					visited[state->id]++;
+					Queue.push(state.lock());
+					visited[state.lock()->id]++;
 				}
 			}
 		}
@@ -309,7 +323,7 @@ void Production_FA::search_group_maps(string &w)
 
 	for (auto group_start_state : group_start_states)
 	{
-		//cout << group_start_state->groupNo << endl;
+		//cout <<group_start_state->out1->c<<" "<< group_start_state->toString() << endl;
 		search_group_map(group_start_state, w);
 	}
 	/*
@@ -337,8 +351,8 @@ void Production_FA::search_group_map(shared_ptr<NFA_state> group_start_state, st
 			c = w[i];
 		}
 		std::fill(visited.begin(), visited.end(), 0);
-		group_start_state->cur_set->clear();
-		group_start_state->first_set->clear();
+		clear_set(group_start_state->cur_set);
+		clear_set(group_start_state->first_set);
 		group_start_state->cur_set->insert(make_tuple(group_start_state->referNo,i,0));
 		group_start_state->first_set->insert(make_tuple(group_start_state->referNo, i, 0));
 		clist->emplace_back(group_start_state);
@@ -412,10 +426,12 @@ void Production_FA::search_group_map(shared_ptr<NFA_state> group_start_state, st
 					break;
 				}
 				}
-				node->next_set->clear();
-				node->cur_set->clear();
-				node->first_set->clear();
+				//node->next_set->clear();
+				clear_set(node->next_set);
+				clear_set(node->cur_set);
+				clear_set(node->next_first_set);
 			}
+			NFA_statesets->clear();
 			if (nlist->size())
 			{
 				for (auto& nxt : *nlist)
@@ -423,8 +439,8 @@ void Production_FA::search_group_map(shared_ptr<NFA_state> group_start_state, st
 					auto temp = nxt->cur_set;
 					nxt->cur_set = nxt->next_set;
 					nxt->next_set = temp;
-					nxt->next_set->clear();
-
+					/*nxt->next_set->clear();*/
+					clear_set(nxt->next_set);
 					temp = nxt->first_set;
 					nxt->first_set = nxt->next_first_set;
 					nxt->next_first_set = temp;
@@ -458,6 +474,10 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_
 	{
 	case Type::MatchState:
 	{
+		if (!hasRefer&&i==w.length()) {
+			res = true;
+		}
+			
 		s->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
 		s->first_set->insert(cur->first_set->begin(), cur->first_set->end());
 		if (visited[s->id] == 1) {
@@ -505,7 +525,7 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_
 	case Type::LookAround:
 	{
 		shared_ptr<LookAroundState> la = dynamic_pointer_cast<LookAroundState>(s);
-		if (la->hasRefer)
+		if (la->hasRefer||la->hasGroup)
 		{
 			la->next_set->insert(cur->cur_set->begin(), cur->cur_set->end());
 			la->first_set->insert(cur->first_set->begin(), cur->first_set->end());
@@ -515,14 +535,20 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_
 				NFA_statesets->insert(s);
 
 			}
+			s->lock = true;
+			step(s->out1, c, i, s);
+			s->lock = false;
+			s->cur_set->clear();
+			s->first_set->clear();
+			return;
 		}
 		else if (!la->match(w, i))
 			return;
-		s->groupType = 1;
+		//s->groupType = 1;
 		s->lock = true;
-		step(s->out1, c, i, s);
+		step(s->out1, c, i, cur);
 		s->lock = false;
-		s->cur_set->erase(make_tuple(referCount + la->look_aroundno, i, 1));
+		//s->cur_set->erase(make_tuple(referCount + la->look_aroundno, i, 1));
 		return;
 	}
 	case Type::Split:
@@ -538,9 +564,9 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_
 		bool meta = false;
 		if (i > 0 && i < w.length())
 		{
-			if (isalnum(w[i - 1]) && isalnum(w[i]))
+			if ((isalnum(w[i - 1]) || w[i - 1] == '_') && (isalnum(w[i]) || w[i] == '_'))
 				return;
-			if (!isalnum(w[i - 1]) && !isalnum(w[i]))
+			if (!(isalnum(w[i - 1]) || w[i - 1] == '_') && !(isalnum(w[i]) || w[i] == '_'))
 				return;
 		}
 		s->lock = true;
@@ -560,10 +586,14 @@ void Production_FA::step(shared_ptr<NFA_state> s, char c, int i, shared_ptr<NFA_
 	default:
 		break;
 	}
-	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n')
+	if (i == w.length())
+		return;
+	if (s->c == c - ' ' || (s->c == Type::AnyChar && c != '\n'&&i!=w.length())
 		|| (s->c == Type::SingleLetter && (isspace(c)))
 		|| (s->c == Type::NonSingleLetter && !(isspace(c)))
 		|| (s->c == Type::Digit && c >= -1 && c <= 200 && isdigit(c))
+		|| (s->c == Type::NonDigit && !isdigit(c))
+		|| ((s->c == Type::NonWord && !(isalnum(c) || c == '_')))
 		|| (s->c == Type::Word && c >= -1 && c <= 200 && (isdigit(c) || isupper(c) || islower(c) || c == '_')))
 	{
 		if (hasRefer)

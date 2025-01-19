@@ -53,8 +53,8 @@ typedef uint64_t uint_t;
 #define I_MAX	INT64_MAX
 #define I_MIN	INT64_MIN
 #else
-typedef int32_t int_t;
-typedef uint32_t uint_t;
+typedef long long int_t;
+typedef long long uint_t;
 #define PRIdN	PRId32
 #define U_MAX	UINT32_MAX
 #define I_MAX	INT32_MAX
