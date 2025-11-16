@@ -43,6 +43,15 @@ struct Tuplefunc2 {
 		return seed ^=hash<string>()(get<2>(key)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 	}
 };
+struct Tuplefunc3 {
+	size_t operator()(const tuple<int, int, string, int>& key) const {
+		size_t seed = std::hash<int>()(std::get<0>(key));
+		seed ^= std::hash<int>()(std::get<1>(key))+ 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<std::string>()(std::get<2>(key))+ 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		seed ^= std::hash<int>()(std::get<3>(key))+ 0x9e3779b9 + (seed << 6) + (seed >> 2);
+		return seed;
+	}
+};
 struct Equalfunc {
 	bool operator() (const pair<int, int>& a, const pair<int, int>& b) const {
 		return a.first == b.first && a.second == b.second;

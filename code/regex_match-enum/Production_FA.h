@@ -72,7 +72,7 @@ private:
 	shared_ptr<vector<shared_ptr<NFA_state>>> clist;
 	shared_ptr<vector<shared_ptr<NFA_state>>> nlist;
 	shared_ptr<vector<shared_ptr<NFA_state>>> tlist;
-	unordered_map<tuple<int, int, string>, bool,Tuplefunc2> visited;
+	unordered_map<tuple<int, int, string,int>, bool,Tuplefunc3> visited;
 	vector<int> min_t;
 	string w;
 	string E;

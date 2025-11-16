@@ -31,9 +31,9 @@ bool Production_FA::step(shared_ptr<NFA_state> s, int i,string& group,int curSta
 	if (s == nullptr)
 		return false;
 	//cout << s->c << " ";
-		if (visited.find(make_tuple(s->id,i,group))!=visited.end())
+		if (visited.find(make_tuple(s->id,i,group,curStart))!=visited.end())
 			return false;
-		visited.insert(make_pair(make_tuple(s->id, i, group), true));
+		visited.insert(make_pair(make_tuple(s->id, i, group,curStart), true));
 	switch (s->c)
 	{
 	case 257:
@@ -61,7 +61,7 @@ bool Production_FA::step(shared_ptr<NFA_state> s, int i,string& group,int curSta
 	}
 	case Type::ReferStart:
 	{
-		if(strcmp(w.substr(i,i+group.length()).c_str(), group.c_str())!=0)
+		if(strcmp(w.substr(i,group.length()).c_str(), group.c_str())!=0)
 			return false;
 		if (step(s->out1, i + group.length(), group, curStart))
 			return true;
