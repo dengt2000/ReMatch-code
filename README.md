@@ -1,5 +1,5 @@
 
-## More Compact Representation of Automata to Defend against ReDoS Attacks
+## More Compact Representation of Automata to Match Regular Expressions with Backreferences
 
 
 
