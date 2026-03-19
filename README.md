@@ -50,3 +50,12 @@ For example:
 | **Positive Lookbehind(?<=...)**    | Asserts that a match is preceded by a certain pattern (without including it in the match).Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookbehind assertion | `a(?<=b)` matches `a` only if preceded by `b`     |
 | **Negative Lookehind (?<!...)**    | Asserts that a match is not preceded by a certain pattern.Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookbehind assertion | `a(<?!b)` matches `a` only if not preceded by `b` |
 
+## Version
+| Baseline                   | Version     | Year  |
+|----------------------------|-------------|-------|
+| PCRE                       | PCRE2-10.42 | 2022  |
+| Boost Xpressive            | 1.74.0      | 2020  |
+| Icu regex                  | 66.1        | 2020  |
+| Python regex engine        | 3.10.12     | 2023  |
+| Snort3 Community Rules     | 3.3.0.0     | 2024  |
+| ClamAV Virus Database      | 62          | 2023  |
