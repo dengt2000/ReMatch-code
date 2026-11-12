@@ -1,6 +1,5 @@
 
-## More Compact Representation of Automata to Match Regular
-Expressions with Backreferences
+## More Compact Representation of Automata to Match Regular Expressions with Backreferences
 
 
 ### Compile
