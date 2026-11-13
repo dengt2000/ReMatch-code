@@ -2,27 +2,70 @@
 ## More Compact Representation of Automata to Match Regular Expressions with Backreferences
 
 
-### Compile
+### Environment requirements (Ubuntu/Linux)
+
+The command-line programs target Linux: they include `<sys/sysinfo.h>` and use
+`/proc/<pid>/status` for memory measurements. Native macOS and Windows builds
+require platform-specific changes.
+
+Required build dependencies:
+
+- A C++17-capable compiler (`g++` on Ubuntu).
+- Standard C/C++ development headers and tools (`build-essential`).
+- Boost development headers (`libboost-dev`) for ReMatch and ReMatch+.
+  The code uses the header-only `boost::dynamic_bitset`; no Boost linker flags
+  are needed.
+
+Verified environment: Ubuntu 24.04 (ARM64 container), GCC 13.3.0, and Boost
+1.83. All three implementations compile with the command below and pass the
+literal and backreference positive/negative smoke tests.
+
+On Ubuntu, install the dependencies with:
 
 ```shell
-g++ -O2 *.cpp match.o
+sudo apt-get update
+sudo apt-get install -y build-essential libboost-dev
 ```
+
+### Compile
+
+Run the following from the repository root to build ReMatch+:
+
+```shell
+cd code/regex_ReMatchplus
+g++ -std=c++17 -O2 *.cpp -o match
+```
+
+To build the other implementations, run the same `g++` command inside
+`code/regex_ReMatch` (ReMatch) or `code/regex_basicmatch` (basicMatch).
+Each directory is a separate executable; do not compile all three directories
+together. The `-o match` option names the output executable.
+
+If compilation reports `boost/dynamic_bitset.hpp: No such file or directory`,
+install `libboost-dev`. If it reports missing `sys/sysinfo.h`, check that the
+build is running in Linux with the development headers installed.
 
 ### Run
 
+From the directory containing the compiled executable, supply both a pattern
+and an input string:
+
 ```shell
-./match.o pattern string
+./match 'pattern' 'string'
 ```
+
+Use single quotes around patterns so that the shell preserves backslashes and
+other regular-expression characters. Always provide both arguments.
 
 ### Examples
 
-You can first try a regex and a string to run our algorithm. 
-
-For example:
-
 ```shell
-./match.o "^(a*)$" "aa"
+./match '^(a*)$' 'aa'
+./match '^(a)\1$' 'aa'
+./match '^(a)\1$' 'ab'
 ```
+
+The second example should match, while the third should not.
 
 ## Support Syntax
 

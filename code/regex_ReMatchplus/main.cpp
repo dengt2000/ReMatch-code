@@ -472,7 +472,7 @@ switch (p->groupNum)
 		break;
 	}	
 
-	< endl;
+
 	//	//	auto inner = p->groups[0].begin();
 	//	//	bool firstflag=false;
 	//		//cout << w1[0].first <<"  " << w1[0].second << endl;	
