@@ -1,5 +1,6 @@
   #pragma once
 #include"main.h"
+#include "../cli_output.h"
 #include"ConstructandMatch.h"
 #include"ConstructandMatchWLA.h"
 #include "Type.h"
@@ -10,9 +11,9 @@
 #include <sys/sysinfo.h>
 //#include <sys/time.h>
 #include <unistd.h>
-#define VMPEAK_LINE 17
 using namespace std;
 clock_t total_FA_time = 0;
+bool phase_timing_available = false;
 clock_t total_match_time = 0;
 clock_t total_time = 0;
 clock_t kkmptime=0;
@@ -26,6 +27,7 @@ bool match(string E, string w)
 	//cout<<E<<" "<<w<<endl;
 	clock_t begin_time = clock();
 	shared_ptr<Production_FA> p(new Production_FA(E, w));
+	phase_timing_available = p->hasRefer;
 	if (!p->hasRefer)
 	{
 		//cout<<p->res;
@@ -36,26 +38,6 @@ bool match(string E, string w)
 	total_FA_time=FA_time-begin_time;
 
 	// cout<<"debug00 "<<"referEndMaptime "<<p->referEndmap_time<<endl;
-
-	 //cout << p->groups[0].size() << endl;
-	 for (int k = 0; k < 1; k++)
-	 {
-	 	for (int i = 0; i < p->groups[k].size(); i++)
-	 	{
-	 		for (int j = i; j < p->groups[k][i].size(); j++)
-	 			if (p->groups[k][i][j]) {
-	 				cout << k << " " << i << " " << j << endl;
-	 			}
-	 	}
-	 }
-	
-	for (int i = 0; i < p->position_edges.size(); i++) {
-		for (int j = 0; j < p->position_edges[i].size(); j++) {
-			for (auto temp : p->position_edges[i][j]) {
-				cout << i - 1 << " " << j - 1 << " " << temp.first << " " << temp.second << endl;
-			}
-		}
-	}
 
 	for (auto temp : p->position_edges[0][0])
 		if (temp.first == -1 && temp.second == -1)
@@ -114,33 +96,7 @@ string getString(ifstream  &infile)
 	return w;
 }
 
- inline int GetCurrentPid()
- {
- 	    return getpid();
- }
- inline float GetMemoryUsage(int pid)
- {
- 	char file_name[64] = { 0 };
- 	FILE* fd;
- 	char line_buff[512] = { 0 };
- 	sprintf(file_name, "/proc/%d/status", pid);
- 	fd = fopen(file_name, "r");
- 	if (nullptr == fd)
- 		return 0;
- 	char name[64];
- 	int vmrss = 0;
- 	for (int i = 0; i < VMPEAK_LINE - 1; i++)
- 		fgets(line_buff, sizeof(line_buff), fd);
- 	fgets(line_buff, sizeof(line_buff), fd);
- 	sscanf(line_buff, "%s %d", name, &vmrss);
- 	fclose(fd);
- 	// cnvert VmRSS from KB to MB
- 	return vmrss / 1024.0;
-}
-int main(int argc,char* argv[])
+int main(int argc, char* argv[])
 {
-	string exp = argv[1];
-	string w = argv[2];
-	cout << match(exp, w) << " ";
-	return 0;
+    return rematch_cli::run(argc, argv, match, &total_FA_time, &phase_timing_available);
 }

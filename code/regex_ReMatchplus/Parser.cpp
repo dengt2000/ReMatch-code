@@ -61,8 +61,6 @@ shared_ptr<Regex> Parser::parse()
 
 char Parser::peek()
 {
-	if (position >= input.length())
-		cout << position;
 	return input.at(position);
 }
 
@@ -179,7 +177,7 @@ shared_ptr<Regex> Parser::base()
 				}
 				else
 				{
-					cout << "illegal expression\n";
+					cerr << "illegal expression\n";
 					abort();
 				}
 				int start = position;

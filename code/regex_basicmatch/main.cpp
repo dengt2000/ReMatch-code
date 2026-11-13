@@ -1,5 +1,6 @@
   #pragma once
 #include"main.h"
+#include "../cli_output.h"
 #include"ConstructandMatch.h"
 #include "Type.h"
 #include<regex>
@@ -9,7 +10,6 @@
 #include <sys/sysinfo.h>
 #include <sys/time.h>
 #include <unistd.h>
-#define VMPEAK_LINE 17
 using namespace std;
 clock_t total_FA_time = 0;
 clock_t total_match_time = 0;
@@ -75,53 +75,7 @@ string getString(ifstream  &infile)
 	c = infile.get();
 	return w;
 }
-inline int GetCurrentPid()
+int main(int argc, char* argv[])
 {
-	    return getpid();
-}
-inline float GetMemoryUsage(int pid)
-{
-	char file_name[64] = { 0 };
-	FILE* fd;
-	char line_buff[512] = { 0 };
-	sprintf(file_name, "/proc/%d/status", pid);
-	fd = fopen(file_name, "r");
-	if (nullptr == fd)
-		return 0;
-	char name[64];
-	int vmrss = 0;
-	for (int i = 0; i < VMPEAK_LINE - 1; i++)
-		fgets(line_buff, sizeof(line_buff), fd);
-	fgets(line_buff, sizeof(line_buff), fd);
-	sscanf(line_buff, "%s %d", name, &vmrss);
-	fclose(fd);
-	// cnvert VmRSS from KB to MB
-	return vmrss / 1024.0;
-}
-
-
-
-int main(int argc,char* argv[])
-{
-	int current_pid = GetCurrentPid();
-	float init_memory=GetMemoryUsage(current_pid);
-	/*
-	cout << match(argv[1], argv[2])<<" ";
-	cout  <<(double)total_FA_time/1000<<" "<<(double)total_match_time/1000<<" "<< (double)total_time/1000 << " ";
-	float memory_usage = GetMemoryUsage(current_pid);
-	std::cout <<memory_usage-init_memory << std::endl;	*/
-	//int current_pid = GetCurrentPid();
-	//float init_memory=GetMemoryUsage(current_pid);
-	//string E = "^.*(v([\\]\\.wSwam]))+.Z((.SL[^hxw])+)\\w+a.*.*.*\\3$";
-	string E = argv[1];
-	string w = argv[2];
-	 cout<<match(E,w) << endl;
-	 //regex r(E);
-	 //cout << regex_match(w, r)<<endl;
-	 cout  <<(double)total_time/1000 << " ";
-	float memory_usage = GetMemoryUsage(current_pid);
-        std::cout <<memory_usage-init_memory << std::endl;	
-	return 0;
-
-	
+    return rematch_cli::run(argc, argv, match);
 }

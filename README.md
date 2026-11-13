@@ -37,8 +37,46 @@ For ReMatch or basicMatch, use the same compilation command in
 
 ```shell
 ./match '^(a*)$' 'aa'
-./match '^(a)\1$' 'aa'
-./match '^(a)\1$' 'ab'
+./match '^(a)\1$' 'aa'  # match result: 1
+./match '^(a)\1$' 'ab'  # match result: 0
+```
+
+All three implementations print one line with five space-separated fields:
+
+```text
+match_result build_ms match_ms total_ms memory_delta_mb
+```
+
+| Field | Meaning |
+| --- | --- |
+| `match_result` | `1` for a match, `0` otherwise. |
+| `build_ms` | CPU time for initial automaton construction (ms). |
+| `match_ms` | Remaining CPU time in the matching call, including cleanup (ms). |
+| `total_ms` | Total CPU time for the matching call, including construction (ms). |
+| `memory_delta_mb` | Change in resident memory (`VmRSS`), in MiB. |
+
+Unavailable measurements are printed as `NA`. basicMatch reports `NA` for both
+phase times because construction and matching are combined. ReMatch and
+ReMatch+ also report `NA` for both phase times when there is no backreference.
+When phase times are available, their sum equals `total_ms` up to rounding.
+
+For `./match '^(a*)$' 'aa'`, an example output is:
+
+```text
+1 NA NA 0.012000 0.000000
+```
+
+The first field indicates a match. Timing and memory values vary between runs;
+the memory field measures a change in RSS, not peak memory. Diagnostics go to
+standard error. A successful invocation returns exit code `0` for either match
+result; missing or extra arguments return `2`.
+
+### CLI validation
+
+After compiling all three implementations, run the checks with Python 3:
+
+```shell
+python3 tests/check_cli.py
 ```
 
 ## Support Syntax
