@@ -71,14 +71,6 @@ the memory field measures a change in RSS, not peak memory. Diagnostics go to
 standard error. A successful invocation returns exit code `0` for either match
 result; missing or extra arguments return `2`.
 
-### CLI validation
-
-After compiling all three implementations, run the checks with Python 3:
-
-```shell
-python3 tests/check_cli.py
-```
-
 ## Support Syntax
 
 | **Feature**                        | **Description**                                              | **Example**                                       |
