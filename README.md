@@ -67,8 +67,8 @@ The following examples use 129-character strings and illustrative outputs.
 
 `0` indicates no match: the last character differs from the captured substring.
 
-Times are CPU milliseconds; memory is the RSS delta in MiB. `NA` denotes an
-unavailable measurement. Timing and memory values vary between runs.
+Times are CPU milliseconds; memory is the RSS delta in MiB. `NA` indicates that
+the corresponding measurement is not reported. Timing and memory values vary between runs.
 
 ## Supported Syntax
 
