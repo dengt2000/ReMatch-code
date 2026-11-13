@@ -50,15 +50,14 @@ match_result build_ms match_ms total_ms memory_delta_mb
 | Field | Meaning |
 | --- | --- |
 | `match_result` | `1` for a match, `0` otherwise. |
-| `build_ms` | CPU time for initial automaton construction (ms). |
+| `build_ms` | CPU time for initial automaton construction and processing (ms). |
 | `match_ms` | Remaining CPU time in the matching call, including cleanup (ms). |
 | `total_ms` | Total CPU time for the matching call, including construction (ms). |
 | `memory_delta_mb` | Change in resident memory (`VmRSS`), in MiB. |
 
-Unavailable measurements are printed as `NA`. basicMatch reports `NA` for both
-phase times because construction and matching are combined. ReMatch and
-ReMatch+ also report `NA` for both phase times when there is no backreference.
-When phase times are available, their sum equals `total_ms` up to rounding.
+`NA` denotes an unavailable measurement. `total_ms` includes construction and
+matching. When phase times are available, their sum equals `total_ms` up to
+rounding.
 
 For `./match '^(a*)$' 'aa'`, an example output is:
 
@@ -71,37 +70,41 @@ the memory field measures a change in RSS, not peak memory. Diagnostics go to
 standard error. A successful invocation returns exit code `0` for either match
 result; missing or extra arguments return `2`.
 
-## Support Syntax
+## Supported Syntax
 
-| **Feature**                        | **Description**                                              | **Example**                                       |
-| ---------------------------------- | ------------------------------------------------------------ | ------------------------------------------------- |
-| **ASCII Literal Characters**       | ASCII Characters are matched as they are (e.g., `a` matches the character `a`). | `a`, `1`, `.`                                     |
-| **Dot (.)**                        | Matches any character except newline (`\n`).                 | `a.b` matches `acb`, `a1b`                        |
-| **Star (\*)**                      | Matches the preceding element zero or more times.            | `a*` matches `, `a`, `aa`                         |
-| **Plus (+)**                       | Matches the preceding element one or more times.             | `a+` matches `a`, `aa`, `aaa`                     |
-| **Question Mark (?)**              | Matches the preceding element zero or one time (optional).   | `a?` matches `, `a`                               |
-| **Character Classes([])**          | Defines a character class, matching any of the characters inside the brackets. Can include ranges. | `[a-z]`, `[0-9]`, `[abc]`                         |
-| **Negated Character Classes([^])** | Defines a character class, matching any of the characters not inside the brackets. Can include ranges. | `[^a-z]`, `[^0-9]`, `[^abc]`                      |
-| **Digit (\d)**                     | Matches any digit, equivalent to `[0-9]`.                    | `\d` matches `1`, `5`                             |
-| **Non-Digit (\D)**                 | Matches any non-digit, equivalent to `[^0-9]`.               | `\D` matches a,&                                  |
-| **Word Character (\w)**            | Matches any alphanumeric character or underscore, equivalent to `[a-zA-Z0-9_]`. | `\w` matches `a`, `1`, `_`                        |
-| **Non-Word Character (\W)**        | Matches any  non-word characters                             | `\w` matches `\t`                                 |
-| **Whitespace (\s)**                | Matches any whitespace character (space, tab, newline, etc.). | `\s` matches  `\t`                                |
-| **Whitespace (\S)**                | Matches any non-whitespace character a                       | `\sS matches  `\a,1,_`                            |
-| **Capture Group (())**             | Groups expressions together and captures the match.          | `(abc)` captures `abc`                            |
-| **Non-capture Group (?:...)**      | Groups expressions without capturing the match.              | `(?:abc)` does not capture `abc`                  |
-| **Backreferences**                 | Backreferences match the same text as previously matched by a capturing group. | (.)\\1 matches aa but does not match ab           |
-| **Positive Lookahead (?=...)**     | Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookahead assertion | `a(?=b)` matches `a` only if followed by `b`      |
-| **Negative Lookahead (?!...)**     | Asserts that a match is not followed by a certain pattern.Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookahead assertion | `a(?!b)` matches `a` only if not followed by `b`  |
-| **Positive Lookbehind(?<=...)**    | Asserts that a match is preceded by a certain pattern (without including it in the match).Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookbehind assertion | `a(?<=b)` matches `a` only if preceded by `b`     |
-| **Negative Lookehind (?<!...)**    | Asserts that a match is not preceded by a certain pattern.Asserts that a match is followed by a certain pattern (without including it in the match).capturing groups and backreferences are not supported within lookbehind assertion | `a(<?!b)` matches `a` only if not preceded by `b` |
+| Feature | Description | Examples |
+| --- | --- | --- |
+| ASCII literals | Match the specified character. | `a`, `1`, `_` |
+| Dot (`.`) | Match any character except newline. | `a.b` |
+| Star (`*`) | Repeat the preceding element zero or more times. | `a*` matches the empty string, `a`, or `aa`. |
+| Plus (`+`) | Repeat the preceding element one or more times. | `a+` matches `a`, `aa`, or `aaa`. |
+| Question mark (`?`) | Match the preceding element zero or one time. | `a?` matches the empty string or `a`. |
+| Character classes (`[...]`) | Match one character from a set or range. | `[abc]`, `[a-z]`, `[0-9]` |
+| Negated character classes (`[^...]`) | Match one character outside a set or range. | `[^abc]`, `[^a-z]` |
+| Digit (`\d`) | Match an ASCII digit. | `\d` matches `5`. |
+| Non-digit (`\D`) | Match a character other than an ASCII digit. | `\D` matches `a`. |
+| Word character (`\w`) | Match an ASCII letter, digit, or underscore. | `\w` matches `a`, `1`, or `_`. |
+| Non-word character (`\W`) | Match a character outside the word character class. | `\W` matches `!`. |
+| Whitespace (`\s`) | Match a whitespace character. | `\s` matches a space or tab. |
+| Non-whitespace (`\S`) | Match a non-whitespace character. | `\S` matches `a`. |
+| Capturing group (`(...)`) | Group an expression and capture its matched text. | `(abc)` |
+| Non-capturing group (`(?:...)`) | Group an expression without capturing its matched text. | `(?:abc)` |
+| Backreference | Match the text captured by a referenced group. | `(.)\1` matches `aa`, but not `ab`. |
+| Positive lookahead (`(?=...)`) | Require the following text to match the assertion without consuming it. | `a(?=b)` |
+| Negative lookahead (`(?!...)`) | Require the following text not to match the assertion without consuming it. | `a(?!b)` |
+| Positive lookbehind (`(?<=...)`) | Require the preceding text to match the assertion without consuming it. | `(?<=b)a` |
+| Negative lookbehind (`(?<!...)`) | Require the preceding text not to match the assertion without consuming it. | `(?<!b)a` |
 
-## Version
+The lookaround examples above contain no capturing groups or backreferences
+inside the assertions.
+
+## Experiment Versions
+
 | Baseline                   | Version     | Year  |
 |----------------------------|-------------|-------|
 | PCRE                       | PCRE2-10.42 | 2022  |
 | Boost Xpressive            | 1.74.0      | 2020  |
-| Icu regex                  | 66.1        | 2020  |
+| ICU regex                  | 66.1        | 2020  |
 | Python regex engine        | 3.10.12     | 2023  |
 | Snort3 Community Rules     | 3.3.0.0     | 2024  |
 | ClamAV Virus Database      | 62          | 2023  |
