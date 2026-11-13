@@ -35,40 +35,40 @@ For ReMatch or basicMatch, use the same compilation command in
 
 ### Examples
 
-```shell
-./match '^(a*)$' 'aa'
-./match '^(a)\1$' 'aa'  # match result: 1
-./match '^(a)\1$' 'ab'  # match result: 0
-```
-
 All three implementations print one line with five space-separated fields:
 
 ```text
 match_result build_ms match_ms total_ms memory_delta_mb
 ```
 
-| Field | Meaning |
-| --- | --- |
-| `match_result` | `1` for a match, `0` otherwise. |
-| `build_ms` | CPU time for initial automaton construction and processing (ms). |
-| `match_ms` | Remaining CPU time in the matching call, including cleanup (ms). |
-| `total_ms` | Total CPU time for the matching call, including construction (ms). |
-| `memory_delta_mb` | Change in resident memory (`VmRSS`), in MiB. |
+The following examples use 129-character strings and illustrative outputs.
 
-`NA` denotes an unavailable measurement. `total_ms` includes construction and
-matching. When phase times are available, their sum equals `total_ms` up to
-rounding.
+**Matching input**
 
-For `./match '^(a*)$' 'aa'`, an example output is:
-
-```text
-1 NA NA 0.012000 0.000000
+```shell
+./match '^([ab]+)c\1$' 'ababababababababababababababababababababababababababababababababcabababababababababababababababababababababababababababababababab'
 ```
 
-The first field indicates a match. Timing and memory values vary between runs;
-the memory field measures a change in RSS, not peak memory. Diagnostics go to
-standard error. A successful invocation returns exit code `0` for either match
-result; missing or extra arguments return `2`.
+```text
+1 0.791000 0.459000 1.250000 0.761719
+```
+
+`1` indicates a match: the substrings before and after `c` are identical.
+
+**Non-matching input**
+
+```shell
+./match '^([ab]+)c\1$' 'ababababababababababababababababababababababababababababababababcabababababababababababababababababababababababababababababababaa'
+```
+
+```text
+0 0.819000 0.663000 1.482000 NA
+```
+
+`0` indicates no match: the last character differs from the captured substring.
+
+Times are CPU milliseconds; memory is the RSS delta in MiB. `NA` denotes an
+unavailable measurement. Timing and memory values vary between runs.
 
 ## Supported Syntax
 
