@@ -54,7 +54,7 @@ For ReMatch or basicMatch, use the same compilation command in directory
 0 0.819000 0.663000 1.482000 NA
 ```
 
-`0` indicates no match; `NA` indicates that the used memory is too small.
+`0` indicates no match; `NA` indicates that the memory usage is negligible.
 
 ## Supported Syntax
 
