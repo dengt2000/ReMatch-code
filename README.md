@@ -8,7 +8,6 @@
 - C++17 compiler
 - Boost development headers
 
-Tested with Ubuntu 24.04 (ARM64), GCC 13.3.0, and Boost 1.83.
 
 ```shell
 sudo apt-get update
