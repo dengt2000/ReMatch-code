@@ -24,7 +24,7 @@ cd code/regex_ReMatchplus
 g++ -std=c++17 -O2 *.cpp -o match
 ```
 
-For ReMatch or basicMatch, use the same compilation command in
+For ReMatch or basicMatch, use the same compilation command in directory 
 `code/regex_ReMatch` or `code/regex_basicmatch`, respectively.
 
 ### Run
@@ -35,25 +35,15 @@ For ReMatch or basicMatch, use the same compilation command in
 
 ### Examples
 
-All three implementations print one line with five space-separated fields:
-
-```text
-match_result build_ms match_ms total_ms memory_delta_mb
-```
-
-The following examples use 129-character strings and illustrative outputs.
-
-**Matching input**
-
 ```shell
 ./match '^([ab]+)c\1$' 'ababababababababababababababababababababababababababababababababcabababababababababababababababababababababababababababababababab'
 ```
 
-```text
+```output
 1 0.791000 0.459000 1.250000 0.761719
 ```
 
-`1` indicates a match: the substrings before and after `c` are identical.
+`1` indicates a match; it takes 0.791ms to construct the range-position automaton and 0.459ms to match the string using the automaton. Overall, it takes 1.25ms and 0.761719MB memory to match the given string.
 
 **Non-matching input**
 
@@ -65,10 +55,7 @@ The following examples use 129-character strings and illustrative outputs.
 0 0.819000 0.663000 1.482000 NA
 ```
 
-`0` indicates no match: the last character differs from the captured substring.
-
-Times are CPU milliseconds; memory is the RSS delta in MiB. `NA` indicates that
-the corresponding measurement is not reported. Timing and memory values vary between runs.
+`0` indicates no match; `NA` indicates that the used memory is too small.
 
 ## Supported Syntax
 
